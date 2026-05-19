@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
+  Brain,
   FolderKanban,
+  Globe2,
   LayoutDashboard,
+  Megaphone,
   Menu,
   MessageSquareQuote,
   PanelLeftClose,
@@ -18,6 +22,10 @@ import { useSidebar } from "@/hooks/useSidebar";
 
 const items = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
+  { href: "/seo-analytics", label: "SEO Analytics", icon: BarChart3 },
+  { href: "/aeo-analytics", label: "AEO Analytics", icon: Brain },
+  { href: "/geo-analytics", label: "GEO Analytics", icon: Globe2 },
+  { href: "/google-ads-analytics", label: "Google Ads", icon: Megaphone },
   { href: "/keywords", label: "SEO Recommendation", icon: Search },
   { href: "/aeo-prompts", label: "AEO Recommendation", icon: MessageSquareQuote },
   { href: "/blog-pipeline", label: "Blogs", icon: FolderKanban }

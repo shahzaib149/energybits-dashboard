@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { ExternalLink } from "lucide-react";
 import type { NeutralDomain } from "@/lib/cairrot/types";
+import { COPY } from "@/lib/copy";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import { formatNumber, formatPercent } from "@/lib/utils/format";
 
 export interface NeutralDomainsTableProps {
@@ -13,22 +15,20 @@ export interface NeutralDomainsTableProps {
 export function NeutralDomainsTable({ domains }: NeutralDomainsTableProps) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? domains : domains.slice(0, 10);
+  const copy = COPY.overview.neutralDomains;
 
   if (domains.length === 0) {
     return (
       <section className="rounded-xl border border-border bg-surface p-6">
-        <h2 className="mb-4 text-sm font-semibold text-textPrimary">Neutral domains</h2>
-        <EmptyState
-          title="No neutral domains"
-          description="Neutral citations will appear here once Cairrot records non-brand, non-competitor sources for this run."
-        />
+        <SectionTitle title={copy.title} subtitle={copy.subtitle} />
+        <EmptyState title={copy.emptyTitle} description={copy.emptyDescription} />
       </section>
     );
   }
 
   return (
     <section className="rounded-xl border border-border bg-surface p-6">
-      <h2 className="mb-4 text-sm font-semibold text-textPrimary">Neutral domains</h2>
+      <SectionTitle title={copy.title} subtitle={copy.subtitle} />
       <div className="space-y-2">
         {visible.map((row) => (
           <div
@@ -44,7 +44,7 @@ export function NeutralDomainsTable({ domains }: NeutralDomainsTableProps) {
             />
             <span className="truncate font-medium text-textPrimary">{row.domain}</span>
             <span className="rounded-md bg-background px-2 py-0.5 text-xs text-textSecondary">
-              {formatNumber(row.docsCount)} docs
+              {formatNumber(row.docsCount)} sources
             </span>
             <div className="flex min-w-[120px] items-center gap-2">
               <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border">

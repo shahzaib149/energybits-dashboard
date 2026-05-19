@@ -1,3 +1,4 @@
+import { COPY } from "@/lib/copy";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
 export interface BrandVariantsBadgesProps {
@@ -11,7 +12,9 @@ export function BrandVariantsBadges({ variants }: BrandVariantsBadgesProps) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <span className="text-xs font-medium uppercase tracking-wide text-textMuted">Brand variants spotted</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-textMuted">
+        {COPY.overview.insights.brandVariants}
+      </span>
       {variants.map((variant) => (
         <StatusBadge key={variant} variant="brand">
           {variant}
