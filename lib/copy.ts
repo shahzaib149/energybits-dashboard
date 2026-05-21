@@ -406,6 +406,8 @@ export const COPY = {
     statusCounts: "Creating ({creating}) · Ready ({ready}) · Drafting ({drafting}) · Review ({review}) · Published ({published})",
     empty: "No blog topics in the pipeline yet. Submit one to get started.",
     submitCta: "Submit a topic",
+    refresh: "Refresh",
+    refreshing: "Refreshing…",
     creatingHint: "Blog is being created…",
     submitModal: {
       eyebrow: "Blog pipeline",

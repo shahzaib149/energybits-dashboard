@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Loader2, Sparkles, X } from "lucide-react";
 import type { AeoPromptRecommendation, KeywordRecommendation } from "@/lib/blog-pipeline/submit-types";
+import type { BlogPipelineRow } from "@/lib/airtable/blog-pipeline";
 import { matchRecommendationsForTopic } from "@/lib/blog-pipeline/match-recommendations";
 import { COPY } from "@/lib/copy";
 
@@ -18,7 +19,7 @@ export function SubmitTopicModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmitted: (recordId: string) => void;
+  onSubmitted: (row: BlogPipelineRow) => void;
 }) {
   const copy = COPY.blogPipeline.submitModal;
   const [loadingRecs, setLoadingRecs] = useState(false);
@@ -102,14 +103,21 @@ export function SubmitTopicModal({
           aeoPromptId: aeo?.id
         })
       });
-      const data = (await res.json()) as { record?: { id: string }; error?: string; webhookError?: string };
+      const data = (await res.json()) as {
+        record?: BlogPipelineRow;
+        error?: string;
+        webhookError?: string;
+      };
       if (!res.ok && res.status !== 207) {
         throw new Error(data.error || copy.submitFailed);
+      }
+      if (!data.record) {
+        throw new Error(copy.submitFailed);
       }
       if (data.webhookError) {
         setError(`${copy.webhookWarning}: ${data.webhookError}`);
       }
-      onSubmitted(data.record!.id);
+      onSubmitted(data.record);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.submitFailed);

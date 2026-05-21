@@ -3,8 +3,7 @@ import { getAirtableClient } from "@/lib/airtable/client";
 import { getServerUser } from "@/lib/auth/getServerUser";
 import { permissions } from "@/lib/auth/permissions";
 import { COPY } from "@/lib/copy";
-import { PipelineStatusTable } from "@/components/blog-pipeline/PipelineStatusTable";
-import { SubmitTopicButton } from "@/components/blog-pipeline/SubmitTopicButton";
+import { BlogPipelineStatusView } from "@/components/blog-pipeline/BlogPipelineStatusView";
 import { isSEOAnalyticsConfigured } from "@/lib/seo-analytics/env";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -31,17 +30,8 @@ export default async function BlogPipelineStatusPage() {
   const rows = await getAirtableClient().getBlogPipeline();
 
   return (
-    <div className="overview-theme mx-auto w-full max-w-[1400px] space-y-6 p-3 sm:space-y-8 sm:p-6 lg:p-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">Workflow</p>
-          <h1 className="mt-1 text-2xl font-semibold text-textPrimary">{copy.title}</h1>
-          <p className="mt-1 text-sm text-textSecondary">{copy.subtitle}</p>
-        </div>
-        {canEdit ? <SubmitTopicButton /> : null}
-      </header>
-
-      <PipelineStatusTable initialRows={rows} canEdit={canEdit} />
+    <div className="overview-theme mx-auto w-full max-w-[1400px] p-3 sm:p-6 lg:p-8">
+      <BlogPipelineStatusView initialRows={rows} canEdit={canEdit} />
     </div>
   );
 }

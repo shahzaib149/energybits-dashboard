@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import type { BlogPipelineRow, BlogStatus } from "@/lib/airtable/blog-pipeline";
+import { isBlogProcessing } from "@/lib/blog-pipeline/processing";
 import { COPY } from "@/lib/copy";
 import { StatusBadge } from "@/components/blog-pipeline/StatusBadge";
 import { PipelineStatusFilters, StatusCountPills } from "@/components/blog-pipeline/PipelineStatusFilters";
@@ -18,8 +18,8 @@ import { formatRelativeTime } from "@/lib/utils/format";
 
 function countByStatus(rows: BlogPipelineRow[]) {
   return {
-    creating: rows.filter((r) => r.blogStatus === "Creating").length,
-    ready: rows.filter((r) => r.blogStatus === "Ready").length,
+    creating: rows.filter((r) => isBlogProcessing(r)).length,
+    ready: rows.filter((r) => r.blogStatus === "Ready" && !isBlogProcessing(r)).length,
     drafting: rows.filter((r) => r.blogStatus === "Draft Generated").length,
     review: rows.filter((r) =>
       ["Needs Review", "Revision Needed", "Approved", "Image Ready"].includes(r.blogStatus)
@@ -29,19 +29,20 @@ function countByStatus(rows: BlogPipelineRow[]) {
 }
 
 export function PipelineStatusTable({
-  initialRows,
-  canEdit
+  rows,
+  canEdit,
+  onSubmitted
 }: {
-  initialRows: BlogPipelineRow[];
+  rows: BlogPipelineRow[];
   canEdit: boolean;
+  onSubmitted?: (row: BlogPipelineRow) => void;
 }) {
   const copy = COPY.blogPipeline;
-  const router = useRouter();
   const [filter, setFilter] = useState<BlogStatus | "all">("all");
   const [search, setSearch] = useState("");
   const [, startTransition] = useTransition();
   const [optimisticRows, dispatch] = useOptimistic(
-    initialRows,
+    rows,
     (
       state,
       action: { type: "delete"; id: string } | { type: "update"; row: BlogPipelineRow }
@@ -66,16 +67,8 @@ export function PipelineStatusTable({
   }, [filtered, search]);
 
   const { paginatedItems, page, setPage, pageSize, setPageSize, totalPages, totalRows } = usePagination(searched, {
-    resetDeps: [search, filter]
+    resetDeps: [search, filter, optimisticRows.length]
   });
-
-  const hasCreating = optimisticRows.some((r) => r.blogStatus === "Creating");
-
-  useEffect(() => {
-    if (!hasCreating) return;
-    const timer = window.setInterval(() => router.refresh(), 8000);
-    return () => window.clearInterval(timer);
-  }, [hasCreating, router]);
 
   return (
     <div className="space-y-4">
@@ -97,13 +90,13 @@ export function PipelineStatusTable({
           <p className="text-sm text-textSecondary">{copy.empty}</p>
           {canEdit ? (
             <div className="mt-4">
-              <SubmitTopicButton />
+              <SubmitTopicButton onSubmitted={onSubmitted} />
             </div>
           ) : null}
         </div>
       ) : (
         <div className="space-y-4 rounded-xl border border-border bg-surface p-4 sm:p-6">
-          {filtered.length >= 8 ? (
+          {optimisticRows.length >= 8 ? (
             <TableSearch value={search} onChange={setSearch} placeholder="Search by title, submitter, or status…" />
           ) : null}
           <div className="overflow-x-auto rounded-lg ring-1 ring-border/40">
@@ -134,8 +127,8 @@ export function PipelineStatusTable({
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge status={row.blogStatus} />
-                        {row.blogStatus === "Creating" ? (
+                        <StatusBadge status={row.blogStatus} processing={isBlogProcessing(row)} />
+                        {isBlogProcessing(row) ? (
                           <p className="mt-1 text-xs text-cyan-400">{copy.creatingHint}</p>
                         ) : null}
                       </td>

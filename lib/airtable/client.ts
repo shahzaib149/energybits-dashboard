@@ -33,6 +33,7 @@ type FetchOpts = {
   sort?: Array<{ field: string; direction?: "asc" | "desc" }>;
   maxRecords?: number;
   cacheTags?: string[];
+  noCache?: boolean;
 };
 
 export class AirtableClient {
@@ -46,7 +47,7 @@ export class AirtableClient {
     this.tables = env;
   }
 
-  private async request<T>(url: string, cacheTags?: string[]): Promise<T> {
+  private async request<T>(url: string, cacheTags?: string[], noCache?: boolean): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -57,10 +58,14 @@ export class AirtableClient {
           Authorization: `Bearer ${this.apiKey}`,
           Accept: "application/json"
         },
-        next: {
-          revalidate: REVALIDATE_SECONDS,
-          tags: cacheTags ?? ["airtable-seo"]
-        }
+        ...(noCache
+          ? { cache: "no-store" as const }
+          : {
+              next: {
+                revalidate: REVALIDATE_SECONDS,
+                tags: cacheTags ?? ["airtable-seo"]
+              }
+            })
       });
 
       if (!response.ok) {
@@ -103,7 +108,7 @@ export class AirtableClient {
     do {
       const baseUrl = this.buildUrl(tableId, opts);
       const url = offset ? `${baseUrl}&offset=${encodeURIComponent(offset)}` : baseUrl;
-      const data = await this.request<AirtableListResponse>(url, opts.cacheTags);
+      const data = await this.request<AirtableListResponse>(url, opts.cacheTags, opts.noCache);
       results.push(...data.records.map(mapper));
       offset = data.offset;
       if (results.length >= MAX_RECORDS) {
@@ -208,7 +213,12 @@ export class AirtableClient {
 
     const rows = await this.fetchAllPages(BLOG_PIPELINE_TABLE, mapBlogPipelineRecord, {
       filterByFormula: filter,
-      sort: [{ field: "Last Modified", direction: "desc" }]
+      sort: [
+        { field: "Last Modified", direction: "desc" },
+        { field: "Created Time", direction: "desc" }
+      ],
+      noCache: true,
+      cacheTags: ["blog-pipeline"]
     });
 
     return opts?.limit ? rows.slice(0, opts.limit) : rows;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import {
   buildSubmitWebhookPayload,
   fieldsToAirtable,
@@ -114,6 +115,8 @@ export async function POST(request: Request) {
   });
 
   const row = mapBlogPipelineRecord({ id: record.id, fields: record.fields });
+
+  revalidatePath("/blog-pipeline/status");
 
   if (!webhookResult.ok) {
     return NextResponse.json(

@@ -1,20 +1,25 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import type { BlogPipelineRow } from "@/lib/airtable/blog-pipeline";
 import { SubmitTopicModal } from "@/components/blog-pipeline/SubmitTopicModal";
 import { COPY } from "@/lib/copy";
 import { cn } from "@/lib/utils";
 
-export function SubmitTopicButton({ className }: { className?: string }) {
-  const router = useRouter();
+export function SubmitTopicButton({
+  className,
+  onSubmitted
+}: {
+  className?: string;
+  onSubmitted?: (row: BlogPipelineRow) => void;
+}) {
   const [open, setOpen] = useState(false);
   const copy = COPY.blogPipeline;
 
-  function handleSubmitted(_recordId: string) {
+  function handleSubmitted(row: BlogPipelineRow) {
     toast.success(copy.submitModal.success);
-    router.refresh();
+    onSubmitted?.(row);
   }
 
   return (
