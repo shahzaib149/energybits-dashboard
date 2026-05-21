@@ -5,7 +5,11 @@ import type { GoogleAdsAdGroupRow } from "@/lib/google-ads/types";
 import { COPY } from "@/lib/copy";
 import { aggregateByField } from "@/lib/google-ads/metrics";
 import { ADS_CHART_COLORS, adsChartAxisProps } from "@/components/google-ads/chartTheme";
+import type { DateRange } from "@/lib/date-range/types";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { adGroupColumns, adsFilename } from "@/lib/csv/columns";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency, formatCurrencyCompact, formatNumber, formatPercent, formatRoas } from "@/lib/utils/format";
 
@@ -13,7 +17,13 @@ function truncateLabel(label: string, max = 28): string {
   return label.length > max ? `${label.slice(0, max)}…` : label;
 }
 
-export function AdGroupsTab({ adGroups }: { adGroups: GoogleAdsAdGroupRow[] }) {
+export function AdGroupsTab({
+  adGroups,
+  dateRange
+}: {
+  adGroups: GoogleAdsAdGroupRow[];
+  dateRange: DateRange;
+}) {
   const chartCopy = COPY.googleAds.adGroups.topSpend;
   const tableCopy = COPY.googleAds.adGroups.performanceTable;
 
@@ -58,9 +68,20 @@ export function AdGroupsTab({ adGroups }: { adGroups: GoogleAdsAdGroupRow[] }) {
       </section>
 
       <section className="rounded-xl border border-border bg-surface p-6">
-        <SectionTitle title={tableCopy.title} subtitle={tableCopy.subtitle} />
+        <SectionHeaderRow
+          title={tableCopy.title}
+          subtitle={tableCopy.subtitle}
+          actions={
+            <CSVExportButton
+              data={sorted}
+              columns={adGroupColumns}
+              filename={adsFilename("ad-groups", dateRange)}
+              resourceType="google-ads-ad-groups"
+            />
+          }
+        />
         {sorted.length === 0 ? (
-          <p className="text-sm text-textMuted">{COPY.googleAds.empty.adGroups}</p>
+          <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">

@@ -2,9 +2,13 @@
 
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { GoogleAdsKeywordRow } from "@/lib/google-ads/types";
+import type { DateRange } from "@/lib/date-range/types";
 import { COPY } from "@/lib/copy";
 import { aggregateByField, buildCostBreakdown, matchTypeColor, topByRoas } from "@/lib/google-ads/metrics";
 import { ADS_CHART_COLORS, adsChartAxisProps } from "@/components/google-ads/chartTheme";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { adsFilename, keywordColumns } from "@/lib/csv/columns";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { formatCurrency, formatCurrencyCompact, formatNumber, formatPercent, formatRoas } from "@/lib/utils/format";
 
@@ -12,7 +16,13 @@ function truncateLabel(label: string, max = 24): string {
   return label.length > max ? `${label.slice(0, max)}…` : label;
 }
 
-export function KeywordsTab({ keywords }: { keywords: GoogleAdsKeywordRow[] }) {
+export function KeywordsTab({
+  keywords,
+  dateRange
+}: {
+  keywords: GoogleAdsKeywordRow[];
+  dateRange: DateRange;
+}) {
   const matchCopy = COPY.googleAds.keywords.matchType;
   const topCopy = COPY.googleAds.keywords.topKeywords;
   const roasCopy = COPY.googleAds.keywords.topRoas;
@@ -24,6 +34,7 @@ export function KeywordsTab({ keywords }: { keywords: GoogleAdsKeywordRow[] }) {
     .map((row) => ({ name: truncateLabel(row.label), fullName: row.label, cost: row.cost, roas: row.roas }));
   const topRoasRows = topByRoas(keywords, 5, 8);
   const sorted = [...keywords].sort((a, b) => b.cost - a.cost);
+  const highSpendLowConv = sorted.filter((row) => row.cost >= 50 && row.conversions === 0);
 
   return (
     <div className="space-y-6">
@@ -112,9 +123,69 @@ export function KeywordsTab({ keywords }: { keywords: GoogleAdsKeywordRow[] }) {
       </section>
 
       <section className="rounded-xl border border-border bg-surface p-6">
-        <SectionTitle title={tableCopy.title} subtitle={tableCopy.subtitle} />
+        <SectionHeaderRow
+          title="High spend, low conversion keywords"
+          subtitle="Keywords with $50+ spend and zero conversions in this period"
+          actions={
+            <CSVExportButton
+              data={highSpendLowConv}
+              columns={keywordColumns}
+              filename={adsFilename("high-spend-low-conv-keywords", dateRange)}
+              resourceType="google-ads-keywords-waste"
+            />
+          }
+        />
+        {highSpendLowConv.length === 0 ? (
+          <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
+                  <th className="py-2 pr-3">Keyword</th>
+                  <th className="py-2 pr-3">Match</th>
+                  <th className="py-2 pr-3">Campaign</th>
+                  <th className="py-2 pr-3">Spend</th>
+                  <th className="py-2 pr-3">Clicks</th>
+                  <th className="py-2">ROAS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {highSpendLowConv.map((row) => (
+                  <tr key={row.id} className="border-b border-border/60">
+                    <td className="max-w-[160px] truncate py-3 pr-3 font-medium text-textPrimary" title={row.keywordText}>
+                      {row.keywordText}
+                    </td>
+                    <td className="py-3 pr-3 text-textSecondary">{row.matchType}</td>
+                    <td className="max-w-[140px] truncate py-3 pr-3 text-textSecondary" title={row.campaignName}>
+                      {row.campaignName}
+                    </td>
+                    <td className="py-3 pr-3 tabular-nums">{formatCurrency(row.cost)}</td>
+                    <td className="py-3 pr-3 tabular-nums">{formatNumber(row.clicks)}</td>
+                    <td className="py-3 tabular-nums">{formatRoas(row.roas)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-border bg-surface p-6">
+        <SectionHeaderRow
+          title={tableCopy.title}
+          subtitle={tableCopy.subtitle}
+          actions={
+            <CSVExportButton
+              data={sorted}
+              columns={keywordColumns}
+              filename={adsFilename("keywords", dateRange)}
+              resourceType="google-ads-keywords"
+            />
+          }
+        />
         {sorted.length === 0 ? (
-          <p className="text-sm text-textMuted">{COPY.googleAds.empty.keywords}</p>
+          <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">

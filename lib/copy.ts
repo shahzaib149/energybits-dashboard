@@ -1,4 +1,53 @@
 export const COPY = {
+  auth: {
+    login: {
+      emailLabel: "Email",
+      passwordLabel: "Password",
+      emailPlaceholder: "you@company.com",
+      passwordPlaceholder: "Your password",
+      helperText:
+        "Enter the email and password from your invite. If you received a magic link, open it first to set your password, then sign in here.",
+      submitLabel: "Sign in to dashboard",
+      welcomeTitle: "Welcome back",
+      welcomeSubtitle: "Enter your email and password to continue.",
+      authCallbackError: "Sign-in failed. Try again or use the link from your invite email."
+    },
+    notProvisioned: {
+      title: "Account not provisioned",
+      description:
+        "Your sign-in worked, but this dashboard account has not been set up yet. Contact your administrator to get access.",
+      signOutLabel: "Sign out",
+      adminHint: "Need help?",
+      contactAdmin: "Contact admin"
+    },
+    auditLog: {
+      metaTitle: "Audit Log · ENERGYbits",
+      eyebrow: "Admin",
+      title: "Audit Log",
+      description:
+        "Activity log of all user actions on this dashboard. Visible to admins only.",
+      loadError: "Unable to load audit log.",
+      empty: "No audit events yet.",
+      viewMeta: "View details",
+      hideMeta: "Hide",
+      filters: {
+        action: "Action",
+        user: "User",
+        from: "From",
+        to: "To",
+        all: "All",
+        apply: "Apply",
+        reset: "Reset"
+      },
+      columns: {
+        when: "When",
+        who: "Who",
+        action: "Action",
+        resource: "Resource",
+        metadata: "Details"
+      }
+    }
+  },
   hub: {
     meta: {
       title: "Dashboard Overview · ENERGYbits",
@@ -64,6 +113,16 @@ export const COPY = {
       actionLabel: "Learn more"
     },
     loadError: "Unable to load the visibility dashboard.",
+    topActions: {
+      title: "🎯 This week's top actions",
+      subtitle: "The highest-priority items across your channels right now",
+      emptyState: "No critical actions this week. Your dashboard is healthy across all channels.",
+      markHandled: "Mark as handled",
+      markHandledTooltip: "Hide this action once you've addressed it. SEO items are marked Done in Airtable.",
+      viewDetails: "View details",
+      panelTooltip:
+        "These are the highest-impact items to address this week, surfaced automatically from your SEO, traffic, and ad data."
+    },
     projectBanner: {
       eyebrow: "Brand overview",
       lastAnalysis: "Last analysis",
@@ -324,6 +383,71 @@ export const COPY = {
       page2: "No page 2 opportunities in this period.",
       highEngagement: "No high-engagement pages matched the threshold yet.",
       poorPerformance: "No underperforming pages matched the threshold."
+    },
+    actionStatus: {
+      label: "Action Status",
+      tooltip: "Track where you are on fixing each opportunity. Updates are saved automatically.",
+      filters: {
+        all: "All",
+        notStarted: "Not Started",
+        inProgress: "In Progress",
+        done: "Done",
+        ignored: "Ignored"
+      }
+    }
+  },
+  blogPipeline: {
+    meta: {
+      title: "Blog Pipeline · ENERGYbits",
+      description: "Track where each blog topic is in the production process."
+    },
+    title: "Blog pipeline",
+    subtitle: "Where each blog topic is in the production process",
+    statusCounts: "Ready ({ready}) · Drafting ({drafting}) · Review ({review}) · Published ({published})",
+    empty: "No blog topics in the pipeline yet. Submit one to get started.",
+    submitCta: "Submit a topic",
+    editTopic: "Edit topic",
+    editTooltip: "Edit this topic before AI starts drafting it.",
+    deleteTopic: "Delete topic",
+    deleteTooltip: "Remove this topic from the queue. Only works before drafting starts.",
+    deleteConfirm: "Delete \"{title}\"? This cannot be undone.",
+    cannotEdit: "Can only edit topics that haven't started drafting yet.",
+    saveTopic: "Save changes",
+    cancel: "Cancel",
+    topicUpdated: "Topic updated",
+    topicDeleted: "Topic deleted",
+    publish: {
+      button: "Publish",
+      publishing: "Publishing…",
+      published: "Publish triggered",
+      tooltip: "Send this blog to Make.com for publishing.",
+      confirm: "Publish \"{title}\"? This will trigger the publishing workflow.",
+      success: "Publish workflow triggered.",
+      failed: "Could not trigger publish. Please try again."
+    },
+    previewEdit: {
+      hint: "Click the title, description, or article body to edit. Changes save automatically (title & description) or when you click Save on the body.",
+      clickBody: "Click to edit article content",
+      editingBody: "Edit article content",
+      saveBody: "Save content",
+      saving: "Saving…",
+      saved: "Saved",
+      saveFailed: "Save failed",
+      bodySavedAsHuman: "Content saved to Human Edited Draft",
+      addBody: "Click to add article content",
+      noBody: "No draft content available for this record."
+    },
+    loadError: "Unable to load blog pipeline.",
+    columns: {
+      title: "Blog Title",
+      status: "Status",
+      submittedBy: "Submitted by",
+      submittedAt: "Submitted",
+      updatedAt: "Last updated",
+      actions: "Actions"
+    },
+    filters: {
+      all: "All statuses"
     }
   },
   googleAds: {
@@ -441,6 +565,36 @@ export const COPY = {
       creatives: "No creative data synced yet.",
       keywords: "No keyword data synced yet."
     }
+  },
+  dateRange: {
+    label: "Date range",
+    tooltip:
+      "Choose the time period to analyze. Default is the last 28 days, matching Google Analytics standard.",
+    presets: {
+      "7d": "Last 7 days",
+      "28d": "Last 28 days",
+      "90d": "Last 90 days",
+      "12m": "Last 12 months",
+      custom: "Custom range..."
+    },
+    customPickerTitle: "Select date range",
+    apply: "Apply",
+    cancel: "Cancel",
+    invalidRange: "Invalid date range. Showing last 28 days.",
+    farRangeWarning: "Data older than 16 months may be incomplete.",
+    farRangeWarningTooltip:
+      "Data older than 16 months may not be complete due to Google Search Console retention limits.",
+    emptyForRange: "No data for this date range. Try a wider window."
+  },
+  csvExport: {
+    button: "Export CSV",
+    exporting: "Exporting...",
+    tooltip: "Download this table as a CSV file. Works in Excel, Google Sheets, or any spreadsheet tool.",
+    noData: "No data to export.",
+    largeWarning: "Export {count} rows? Large exports may take a moment.",
+    blocked: "Too many rows. Filter the table first.",
+    success: "Export downloaded.",
+    failed: "Export failed. Please try again."
   }
 } as const;
 

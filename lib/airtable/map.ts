@@ -7,6 +7,7 @@ import type {
   SEOOpportunityType,
   SEOPriority,
   SEOStatus,
+  ActionStatus,
   SEOTrackingRow
 } from "@/lib/airtable/types";
 
@@ -51,6 +52,7 @@ export function mapSEOTrackingRecord(record: AirtableRecordRaw): SEOTrackingRow 
     suggestedContentType: asString(f["Suggested Content Type"]),
     suggestedTargetProduct: asString(f["Suggested Target Product"]),
     status: asEnum<SEOStatus>(f.Status, "New"),
+    actionStatus: asEnum<ActionStatus>(f["Action Status"], "Not Started"),
     lastChecked: asString(f["Last Checked"]),
     country: asString(f.Country) || undefined
   };

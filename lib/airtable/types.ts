@@ -25,6 +25,8 @@ export type SEOPriority = "Critical" | "High" | "Medium" | "Low" | "Monitor";
 
 export type SEOStatus = "New" | "In Progress" | "Updated" | "Retest Needed" | "Improved" | "Ignored";
 
+export type ActionStatus = "Not Started" | "In Progress" | "Done" | "Ignored";
+
 export interface SEOTrackingRow {
   id: string;
   seoKey: string;
@@ -45,6 +47,7 @@ export interface SEOTrackingRow {
   suggestedContentType: string;
   suggestedTargetProduct: string;
   status: SEOStatus;
+  actionStatus: ActionStatus;
   lastChecked: string;
   country?: string;
 }

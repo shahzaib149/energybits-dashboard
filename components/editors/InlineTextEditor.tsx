@@ -8,12 +8,16 @@ export function InlineTextEditor({
   value,
   disabled,
   status,
-  onSave
+  onSave,
+  displayClassName,
+  inputClassName
 }: {
   value?: string;
   disabled?: boolean;
   status: SaveStatus;
   onSave: (value: string) => Promise<any> | void;
+  displayClassName?: string;
+  inputClassName?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
@@ -46,14 +50,14 @@ export function InlineTextEditor({
           onChange={(event) => setDraft(event.target.value)}
           onBlur={() => void commit()}
           onKeyDown={onKeyDown}
-          className="w-full rounded-lg border border-blue-300 px-2 py-1.5 text-sm outline-none"
+          className={inputClassName ?? "w-full rounded-lg border border-blue-300 px-2 py-1.5 text-sm outline-none"}
         />
       ) : (
         <button
           type="button"
           disabled={disabled}
           onClick={() => setEditing(true)}
-          className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 disabled:cursor-default"
+          className={displayClassName ?? "block w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-700 disabled:cursor-default"}
         >
           {value || "—"}
         </button>

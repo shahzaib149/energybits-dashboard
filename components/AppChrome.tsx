@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Toaster } from "react-hot-toast";
+import type { Role } from "@/lib/auth/permissions";
 import { Sidebar } from "@/components/Sidebar";
 import { EditModeProvider } from "@/hooks/useEditMode";
 import { SidebarProvider, useSidebar } from "@/hooks/useSidebar";
@@ -22,11 +23,19 @@ function MainShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AppChrome({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isAuthPage = pathname === "/login";
+const AUTH_SHELL_PATHS = ["/login", "/account-not-provisioned"];
 
-  if (isAuthPage) {
+export function AppChrome({
+  children,
+  userRole
+}: {
+  children: React.ReactNode;
+  userRole: Role | null;
+}) {
+  const pathname = usePathname();
+  const isAuthShell = AUTH_SHELL_PATHS.includes(pathname);
+
+  if (isAuthShell) {
     return (
       <>
         {children}
@@ -38,7 +47,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   return (
     <EditModeProvider>
       <SidebarProvider>
-        <Sidebar />
+        <Sidebar userRole={userRole} />
         <MainShell>{children}</MainShell>
         <Toaster position="bottom-right" />
       </SidebarProvider>

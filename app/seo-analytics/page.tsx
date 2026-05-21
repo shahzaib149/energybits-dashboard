@@ -2,14 +2,18 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { airtable } from "@/lib/airtable/client";
 import { COPY } from "@/lib/copy";
+import { getServerUser } from "@/lib/auth/getServerUser";
+import { permissions } from "@/lib/auth/permissions";
 import { isSEOAnalyticsConfigured } from "@/lib/seo-analytics/env";
 import { latestEndDate } from "@/lib/seo-analytics/metrics";
+import { parseDateRange } from "@/lib/date-range/parse";
 import { SEOAnalyticsHeader } from "@/components/seo-analytics/SEOAnalyticsHeader";
 import { TopMetricsRow } from "@/components/seo-analytics/TopMetricsRow";
 import { TabsNav, type SEOTabId } from "@/components/seo-analytics/TabsNav";
 import { SearchTab } from "@/components/seo-analytics/search/SearchTab";
 import { PagesTab } from "@/components/seo-analytics/pages/PagesTab";
 import { SourcesTab } from "@/components/seo-analytics/sources/SourcesTab";
+import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AirtableAPIError } from "@/lib/airtable/errors";
@@ -29,7 +33,7 @@ function parseTab(tab?: string): SEOTabId {
 export default async function SEOAnalyticsPage({
   searchParams
 }: {
-  searchParams: { tab?: string };
+  searchParams: Record<string, string | undefined>;
 }) {
   if (!isSEOAnalyticsConfigured()) {
     return (
@@ -42,27 +46,41 @@ export default async function SEOAnalyticsPage({
     );
   }
 
+  const { range: dateRange, invalid: showInvalidToast } = parseDateRange(searchParams);
   const activeTab = parseTab(searchParams.tab);
+  const user = await getServerUser();
+  const canEditGSCStatus = user !== null && permissions.canToggleGSCStatus(user.role);
+
+  const dateRangePicker = (
+    <Suspense fallback={<div className="h-8 w-28 animate-pulse rounded-full bg-surfaceElevated" />}>
+      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} />
+    </Suspense>
+  );
 
   try {
     const [keywords, pages, sources, critical, lowCTR, page2, highEngagement, poorPerformance, channels] =
       await Promise.all([
-        airtable.getSEOKeywords({ limit: 500 }),
-        airtable.getTopPagesBySessions(50),
-        airtable.getTrafficSources(50),
-        airtable.getCriticalKeywords(),
-        airtable.getLowCTRKeywords(),
-        airtable.getPage2Opportunities(),
-        airtable.getHighEngagementPages(),
-        airtable.getPoorPerformancePages(),
-        airtable.getChannelBreakdown()
+        airtable.getSEOKeywords({ limit: 500, dateRange }),
+        airtable.getTopPagesBySessions(50, dateRange),
+        airtable.getTrafficSources(50, dateRange),
+        airtable.getCriticalKeywords(dateRange),
+        airtable.getLowCTRKeywords(dateRange),
+        airtable.getPage2Opportunities(dateRange),
+        airtable.getHighEngagementPages(dateRange),
+        airtable.getPoorPerformancePages(dateRange),
+        airtable.getChannelBreakdown(dateRange)
       ]);
 
     const lastUpdated = latestEndDate([...keywords, ...pages, ...sources]);
 
     return (
       <div className="overview-theme mx-auto w-full max-w-[1400px] space-y-6 p-3 sm:space-y-8 sm:p-6 lg:p-8">
-        <SEOAnalyticsHeader lastUpdated={lastUpdated} totalKeywords={keywords.length} />
+        <SEOAnalyticsHeader
+          lastUpdated={lastUpdated}
+          totalKeywords={keywords.length}
+          dateRange={dateRange}
+          dateRangePicker={dateRangePicker}
+        />
         <TopMetricsRow keywords={keywords} pages={pages} />
 
         <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
@@ -70,12 +88,26 @@ export default async function SEOAnalyticsPage({
         </Suspense>
 
         {activeTab === "search" ? (
-          <SearchTab keywords={keywords} critical={critical} lowCTR={lowCTR} page2={page2} />
+          <SearchTab
+            keywords={keywords}
+            critical={critical}
+            lowCTR={lowCTR}
+            page2={page2}
+            canEditGSCStatus={canEditGSCStatus}
+            dateRange={dateRange}
+          />
         ) : null}
         {activeTab === "pages" ? (
-          <PagesTab pages={pages} highEngagement={highEngagement} poorPerformance={poorPerformance} />
+          <PagesTab
+            pages={pages}
+            highEngagement={highEngagement}
+            poorPerformance={poorPerformance}
+            dateRange={dateRange}
+          />
         ) : null}
-        {activeTab === "sources" ? <SourcesTab sources={sources} channels={channels} /> : null}
+        {activeTab === "sources" ? (
+          <SourcesTab sources={sources} channels={channels} dateRange={dateRange} />
+        ) : null}
       </div>
     );
   } catch (err) {

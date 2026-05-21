@@ -15,6 +15,8 @@ import type {
   GoogleAdsCreativeRow,
   GoogleAdsKeywordRow
 } from "@/lib/google-ads/types";
+import type { DateRange } from "@/lib/date-range/types";
+import { combineFormulas, googleAdsDateInRangeFormula } from "@/lib/date-range/airtable-filter";
 
 const REVALIDATE_SECONDS = 300;
 const MAX_RECORDS = 1000;
@@ -24,6 +26,7 @@ type FetchOpts = {
   filterByFormula?: string;
   sort?: Array<{ field: string; direction?: "asc" | "desc" }>;
   maxRecords?: number;
+  cacheTags?: string[];
 };
 
 export class GoogleAdsClient {
@@ -37,7 +40,7 @@ export class GoogleAdsClient {
     this.tables = env;
   }
 
-  private async request<T>(url: string): Promise<T> {
+  private async request<T>(url: string, cacheTags?: string[]): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -50,7 +53,7 @@ export class GoogleAdsClient {
         },
         next: {
           revalidate: REVALIDATE_SECONDS,
-          tags: ["airtable-google-ads"]
+          tags: cacheTags ?? ["airtable-google-ads"]
         }
       });
 
@@ -94,7 +97,7 @@ export class GoogleAdsClient {
     do {
       const baseUrl = this.buildUrl(tableId, opts);
       const url = offset ? `${baseUrl}&offset=${encodeURIComponent(offset)}` : baseUrl;
-      const data = await this.request<AirtableListResponse>(url);
+      const data = await this.request<AirtableListResponse>(url, opts.cacheTags);
       results.push(...data.records.map(mapper));
       offset = data.offset;
       if (results.length >= MAX_RECORDS) {
@@ -105,38 +108,65 @@ export class GoogleAdsClient {
     return results;
   }
 
-  async getCampaigns(limit?: number): Promise<GoogleAdsCampaignRow[]> {
+  private cacheTagsForRange(dateRange?: DateRange): string[] {
+    if (dateRange) {
+      return [`airtable-google-ads-${dateRange.from}-${dateRange.to}`];
+    }
+    return ["airtable-google-ads"];
+  }
+
+  async getCampaigns(limit?: number, dateRange?: DateRange): Promise<GoogleAdsCampaignRow[]> {
+    const dateFilter = dateRange ? googleAdsDateInRangeFormula(dateRange) : undefined;
     const rows = await this.fetchAllPages(
       this.tables.AIRTABLE_GOOGLE_ADS_CAMPAIGNS_TABLE_ID,
       mapCampaignRecord,
-      { sort: [{ field: "Cost", direction: "desc" }] }
+      {
+        filterByFormula: dateFilter,
+        sort: [{ field: "Cost", direction: "desc" }],
+        cacheTags: this.cacheTagsForRange(dateRange)
+      }
     );
     return limit ? rows.slice(0, limit) : rows;
   }
 
-  async getAdGroups(limit?: number): Promise<GoogleAdsAdGroupRow[]> {
+  async getAdGroups(limit?: number, dateRange?: DateRange): Promise<GoogleAdsAdGroupRow[]> {
+    const dateFilter = dateRange ? googleAdsDateInRangeFormula(dateRange) : undefined;
     const rows = await this.fetchAllPages(
       this.tables.AIRTABLE_GOOGLE_ADS_AD_GROUPS_TABLE_ID,
       mapAdGroupRecord,
-      { sort: [{ field: "Cost", direction: "desc" }] }
+      {
+        filterByFormula: dateFilter,
+        sort: [{ field: "Cost", direction: "desc" }],
+        cacheTags: this.cacheTagsForRange(dateRange)
+      }
     );
     return limit ? rows.slice(0, limit) : rows;
   }
 
-  async getCreatives(limit?: number): Promise<GoogleAdsCreativeRow[]> {
+  async getCreatives(limit?: number, dateRange?: DateRange): Promise<GoogleAdsCreativeRow[]> {
+    const dateFilter = dateRange ? googleAdsDateInRangeFormula(dateRange) : undefined;
     const rows = await this.fetchAllPages(
       this.tables.AIRTABLE_GOOGLE_ADS_CREATIVES_TABLE_ID,
       mapCreativeRecord,
-      { sort: [{ field: "Clicks", direction: "desc" }] }
+      {
+        filterByFormula: dateFilter,
+        sort: [{ field: "Clicks", direction: "desc" }],
+        cacheTags: this.cacheTagsForRange(dateRange)
+      }
     );
     return limit ? rows.slice(0, limit) : rows;
   }
 
-  async getKeywords(limit?: number): Promise<GoogleAdsKeywordRow[]> {
+  async getKeywords(limit?: number, dateRange?: DateRange): Promise<GoogleAdsKeywordRow[]> {
+    const dateFilter = dateRange ? googleAdsDateInRangeFormula(dateRange) : undefined;
     const rows = await this.fetchAllPages(
       this.tables.AIRTABLE_GOOGLE_ADS_KEYWORDS_TABLE_ID,
       mapKeywordRecord,
-      { sort: [{ field: "Cost", direction: "desc" }] }
+      {
+        filterByFormula: dateFilter,
+        sort: [{ field: "Cost", direction: "desc" }],
+        cacheTags: this.cacheTagsForRange(dateRange)
+      }
     );
     return limit ? rows.slice(0, limit) : rows;
   }

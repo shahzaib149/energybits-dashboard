@@ -5,12 +5,21 @@ import { ExternalLink } from "lucide-react";
 import type { NeutralDomain } from "@/lib/cairrot/types";
 import { COPY } from "@/lib/copy";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { SectionTitle } from "@/components/ui/SectionTitle";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { staticFilename } from "@/lib/csv/columns";
+import type { CSVColumn } from "@/lib/csv/build";
 import { formatNumber, formatPercent } from "@/lib/utils/format";
 
 export interface NeutralDomainsTableProps {
   domains: NeutralDomain[];
 }
+
+const domainColumns: CSVColumn<NeutralDomain>[] = [
+  { key: "domain", label: "Domain" },
+  { key: "docsCount", label: "Documents" },
+  { key: "sharePct", label: "Share %", format: (v) => Number(v).toFixed(2) }
+];
 
 export function NeutralDomainsTable({ domains }: NeutralDomainsTableProps) {
   const [expanded, setExpanded] = useState(false);
@@ -20,7 +29,7 @@ export function NeutralDomainsTable({ domains }: NeutralDomainsTableProps) {
   if (domains.length === 0) {
     return (
       <section className="rounded-xl border border-border bg-surface p-6">
-        <SectionTitle title={copy.title} subtitle={copy.subtitle} />
+        <SectionHeaderRow title={copy.title} subtitle={copy.subtitle} />
         <EmptyState title={copy.emptyTitle} description={copy.emptyDescription} />
       </section>
     );
@@ -28,7 +37,18 @@ export function NeutralDomainsTable({ domains }: NeutralDomainsTableProps) {
 
   return (
     <section className="rounded-xl border border-border bg-surface p-6">
-      <SectionTitle title={copy.title} subtitle={copy.subtitle} />
+      <SectionHeaderRow
+        title={copy.title}
+        subtitle={copy.subtitle}
+        actions={
+          <CSVExportButton
+            data={domains}
+            columns={domainColumns}
+            filename={staticFilename("aeo-neutral-domains")}
+            resourceType="aeo-neutral-domains"
+          />
+        }
+      />
       <div className="space-y-2">
         {visible.map((row) => (
           <div

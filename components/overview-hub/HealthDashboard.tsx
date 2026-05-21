@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   PolarAngleAxis,
@@ -195,14 +196,17 @@ function ChannelHealthRow({ channel }: { channel: ChannelHealthScore }) {
   );
 }
 
-export function HubOverviewHeader() {
+export function HubOverviewHeader({ dateRangePicker }: { dateRangePicker?: ReactNode }) {
   return (
-    <header>
-      <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">Dashboard</p>
-      <h1 className="mt-1 text-2xl font-semibold text-textPrimary lg:text-3xl">Overview</h1>
-      <p className="mt-1 max-w-2xl text-sm text-textSecondary">
-        One glance at how ENERGYbits is performing — then drill into any channel for full charts and details.
-      </p>
+    <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">Dashboard</p>
+        <h1 className="mt-1 text-2xl font-semibold text-textPrimary lg:text-3xl">Overview</h1>
+        <p className="mt-1 max-w-2xl text-sm text-textSecondary">
+          One glance at how ENERGYbits is performing — then drill into any channel for full charts and details.
+        </p>
+      </div>
+      {dateRangePicker ? <div className="shrink-0">{dateRangePicker}</div> : null}
     </header>
   );
 }

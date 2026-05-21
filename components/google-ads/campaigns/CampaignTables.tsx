@@ -1,6 +1,12 @@
+"use client";
+
 import type { GoogleAdsCampaignRow } from "@/lib/google-ads/types";
+import type { DateRange } from "@/lib/date-range/types";
 import { COPY } from "@/lib/copy";
 import { topByRoas } from "@/lib/google-ads/metrics";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { adsFilename, campaignColumns } from "@/lib/csv/columns";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency, formatNumber, formatPercent, formatRoas } from "@/lib/utils/format";
@@ -11,22 +17,39 @@ function statusVariant(status: string) {
   return "muted" as const;
 }
 
-export function CampaignPerformanceTable({ campaigns }: { campaigns: GoogleAdsCampaignRow[] }) {
+export function CampaignPerformanceTable({
+  campaigns,
+  dateRange
+}: {
+  campaigns: GoogleAdsCampaignRow[];
+  dateRange: DateRange;
+}) {
   const copy = COPY.googleAds.campaigns.performanceTable;
   const sorted = [...campaigns].sort((a, b) => b.cost - a.cost);
 
   if (sorted.length === 0) {
     return (
       <section className="rounded-xl border border-border bg-surface p-6">
-        <SectionTitle title={copy.title} subtitle={copy.subtitle} />
-        <p className="text-sm text-textMuted">{COPY.googleAds.empty.campaigns}</p>
+        <SectionHeaderRow title={copy.title} subtitle={copy.subtitle} />
+        <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
       </section>
     );
   }
 
   return (
     <section className="rounded-xl border border-border bg-surface p-6">
-      <SectionTitle title={copy.title} subtitle={copy.subtitle} />
+      <SectionHeaderRow
+        title={copy.title}
+        subtitle={copy.subtitle}
+        actions={
+          <CSVExportButton
+            data={sorted}
+            columns={campaignColumns}
+            filename={adsFilename("campaigns", dateRange)}
+            resourceType="google-ads-campaigns"
+          />
+        }
+      />
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>

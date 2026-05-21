@@ -2,9 +2,12 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { GA4PageRow } from "@/lib/airtable/types";
+import type { DateRange } from "@/lib/date-range/types";
 import { COPY } from "@/lib/copy";
 import { CHART_COLORS, chartAxisProps } from "@/components/seo-analytics/chartTheme";
-import { SectionTitle } from "@/components/ui/SectionTitle";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { ga4PageColumns, seoFilename } from "@/lib/csv/columns";
 import { formatNumber } from "@/lib/utils/format";
 
 function truncatePath(path: string, max = 36): string {
@@ -12,10 +15,10 @@ function truncatePath(path: string, max = 36): string {
   return `${path.slice(0, max)}…`;
 }
 
-export function TopPagesChart({ pages }: { pages: GA4PageRow[] }) {
+export function TopPagesChart({ pages, dateRange }: { pages: GA4PageRow[]; dateRange: DateRange }) {
   const copy = COPY.seoAnalytics.pages.topPages;
-  const data = [...pages]
-    .sort((a, b) => b.sessions - a.sessions)
+  const exportRows = [...pages].sort((a, b) => b.sessions - a.sessions);
+  const data = exportRows
     .slice(0, 10)
     .map((page) => ({
       path: truncatePath(page.pagePath || "/"),
@@ -25,7 +28,18 @@ export function TopPagesChart({ pages }: { pages: GA4PageRow[] }) {
 
   return (
     <section className="rounded-xl border border-border bg-surface p-6">
-      <SectionTitle title={copy.title} subtitle={copy.subtitle} />
+      <SectionHeaderRow
+        title={copy.title}
+        subtitle={copy.subtitle}
+        actions={
+          <CSVExportButton
+            data={exportRows}
+            columns={ga4PageColumns}
+            filename={seoFilename("top-pages", dateRange)}
+            resourceType="ga4-top-pages"
+          />
+        }
+      />
       <div className="h-[360px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>

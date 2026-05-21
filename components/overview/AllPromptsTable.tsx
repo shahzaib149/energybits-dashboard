@@ -1,7 +1,17 @@
 import type { ProjectPrompt } from "@/lib/cairrot/project-dashboard";
 import { COPY } from "@/lib/copy";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { SectionTitle } from "@/components/ui/SectionTitle";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { staticFilename } from "@/lib/csv/columns";
+import type { CSVColumn } from "@/lib/csv/build";
+
+const allPromptColumns: CSVColumn<ProjectPrompt>[] = [
+  { key: "text", label: "Question" },
+  { key: "topic", label: "Category" },
+  { key: "enabled", label: "Active", format: (v) => (v ? "Yes" : "No") },
+  { key: "buyerPersona", label: "Audience" }
+];
 
 export interface AllPromptsTableProps {
   prompts: ProjectPrompt[];
@@ -13,10 +23,17 @@ export function AllPromptsTable({ prompts }: AllPromptsTableProps) {
 
   return (
     <section className="rounded-xl border border-border bg-surface p-6">
-      <SectionTitle
+      <SectionHeaderRow
         title={copy.title}
         subtitle={copy.subtitle(enabledCount, prompts.length)}
-        titleClassName="text-lg"
+        actions={
+          <CSVExportButton
+            data={prompts}
+            columns={allPromptColumns}
+            filename={staticFilename("aeo-all-prompts")}
+            resourceType="aeo-all-prompts"
+          />
+        }
       />
       <div className="mt-4 overflow-hidden rounded-lg border border-border">
         <div className="grid grid-cols-[minmax(0,2fr)_140px_100px_minmax(140px,1fr)] gap-3 border-b border-border bg-surfaceElevated px-3 py-2 text-[11px] font-medium uppercase text-textMuted">

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AppChrome } from "@/components/AppChrome";
+import { AppChromeWithAuth } from "@/components/AppChromeWithAuth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className="bg-slate-100 font-sans">
-        <AppChrome>{children}</AppChrome>
+        <AppChromeWithAuth>{children}</AppChromeWithAuth>
       </body>
     </html>
   );

@@ -3,7 +3,17 @@ import { asText } from "@/lib/utils";
 
 type BlogRecord = AirtableRecord<BlogPipelineFields>;
 
-const IMAGE_READY_STATUSES = new Set(["Image Ready", "Shopify Draft Created"]);
+/** Show featured image once AI draft exists (from Draft Generated onward). */
+const IMAGE_VISIBLE_STATUSES = new Set([
+  "Draft Generated",
+  "Needs Review",
+  "Revision Needed",
+  "Approved",
+  "Image Ready",
+  "Shopify Draft Created",
+  "Scheduled",
+  "Published"
+]);
 
 interface BlogPreviewImage {
   url: string;
@@ -22,7 +32,7 @@ function isAttachment(value: unknown): value is AirtableAttachment {
 }
 
 export function shouldShowBlogImage(record: BlogRecord) {
-  return IMAGE_READY_STATUSES.has(asText(record.fields["Blog Status"]));
+  return IMAGE_VISIBLE_STATUSES.has(asText(record.fields["Blog Status"]));
 }
 
 export function getFeaturedImageAttachment(record: BlogRecord): AirtableAttachment | null {

@@ -4,6 +4,7 @@ import { googleAds } from "@/lib/google-ads/client";
 import { COPY } from "@/lib/copy";
 import { isGoogleAdsConfigured } from "@/lib/google-ads/env";
 import { latestPulledAt } from "@/lib/google-ads/metrics";
+import { parseDateRange } from "@/lib/date-range/parse";
 import { GoogleAdsHeader } from "@/components/google-ads/GoogleAdsHeader";
 import { TopMetricsRow } from "@/components/google-ads/TopMetricsRow";
 import { TabsNav, type GoogleAdsTabId } from "@/components/google-ads/TabsNav";
@@ -11,6 +12,7 @@ import { CampaignsTab } from "@/components/google-ads/campaigns/CampaignsTab";
 import { AdGroupsTab } from "@/components/google-ads/ad-groups/AdGroupsTab";
 import { CreativesTab } from "@/components/google-ads/creatives/CreativesTab";
 import { KeywordsTab } from "@/components/google-ads/keywords/KeywordsTab";
+import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AirtableAPIError } from "@/lib/airtable/errors";
@@ -30,7 +32,7 @@ function parseTab(tab?: string): GoogleAdsTabId {
 export default async function GoogleAdsAnalyticsPage({
   searchParams
 }: {
-  searchParams: { tab?: string };
+  searchParams: Record<string, string | undefined>;
 }) {
   if (!isGoogleAdsConfigured()) {
     return (
@@ -43,14 +45,21 @@ export default async function GoogleAdsAnalyticsPage({
     );
   }
 
+  const { range: dateRange, invalid: showInvalidToast } = parseDateRange(searchParams);
   const activeTab = parseTab(searchParams.tab);
+
+  const dateRangePicker = (
+    <Suspense fallback={<div className="h-8 w-28 animate-pulse rounded-full bg-surfaceElevated" />}>
+      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} />
+    </Suspense>
+  );
 
   try {
     const [campaigns, adGroups, creatives, keywords] = await Promise.all([
-      googleAds.getCampaigns(),
-      googleAds.getAdGroups(),
-      googleAds.getCreatives(),
-      googleAds.getKeywords()
+      googleAds.getCampaigns(undefined, dateRange),
+      googleAds.getAdGroups(undefined, dateRange),
+      googleAds.getCreatives(undefined, dateRange),
+      googleAds.getKeywords(undefined, dateRange)
     ]);
 
     const lastUpdated = latestPulledAt([...campaigns, ...adGroups, ...creatives, ...keywords]);
@@ -58,17 +67,23 @@ export default async function GoogleAdsAnalyticsPage({
 
     return (
       <div className="overview-theme mx-auto w-full max-w-[1400px] space-y-6 p-3 sm:space-y-8 sm:p-6 lg:p-8">
-        <GoogleAdsHeader lastUpdated={lastUpdated} campaignCount={campaigns.length} accountName={accountName} />
+        <GoogleAdsHeader
+          lastUpdated={lastUpdated}
+          campaignCount={campaigns.length}
+          accountName={accountName}
+          dateRange={dateRange}
+          dateRangePicker={dateRangePicker}
+        />
         <TopMetricsRow campaigns={campaigns} />
 
         <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
           <TabsNav activeTab={activeTab} />
         </Suspense>
 
-        {activeTab === "campaigns" ? <CampaignsTab campaigns={campaigns} /> : null}
-        {activeTab === "ad-groups" ? <AdGroupsTab adGroups={adGroups} /> : null}
-        {activeTab === "creatives" ? <CreativesTab creatives={creatives} /> : null}
-        {activeTab === "keywords" ? <KeywordsTab keywords={keywords} /> : null}
+        {activeTab === "campaigns" ? <CampaignsTab campaigns={campaigns} dateRange={dateRange} /> : null}
+        {activeTab === "ad-groups" ? <AdGroupsTab adGroups={adGroups} dateRange={dateRange} /> : null}
+        {activeTab === "creatives" ? <CreativesTab creatives={creatives} dateRange={dateRange} /> : null}
+        {activeTab === "keywords" ? <KeywordsTab keywords={keywords} dateRange={dateRange} /> : null}
       </div>
     );
   } catch (err) {

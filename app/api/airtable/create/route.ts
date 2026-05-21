@@ -1,12 +1,31 @@
 import { NextResponse } from "next/server";
 import { READONLY_FIELDS } from "@/lib/editing";
+import { getServerUser } from "@/lib/auth/getServerUser";
+import { permissions } from "@/lib/auth/permissions";
+import { logAuditEvent, getRequestContext } from "@/lib/audit/logger";
 
 export async function POST(req: Request) {
-  const { tableId, fields } = await req.json();
+  const user = await getServerUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { tableId, fields } = (await req.json()) as {
+    tableId: string;
+    fields: Record<string, unknown>;
+  };
 
   const safeFields = Object.fromEntries(
-    Object.entries(fields).filter(([key, value]) => !READONLY_FIELDS.includes(key) && value !== "" && value !== undefined)
+    Object.entries(fields).filter(
+      ([key, value]) => !READONLY_FIELDS.includes(key) && value !== "" && value !== undefined
+    )
   );
+
+  const isBlogTopic = typeof safeFields["Blog Title"] === "string";
+
+  if (isBlogTopic && !permissions.canSubmitBlogTopic(user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const res = await fetch(
     `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${encodeURIComponent(tableId)}`,
@@ -23,7 +42,6 @@ export async function POST(req: Request) {
   if (!res.ok) {
     const error = await res.json();
 
-    // Extract more specific error information
     let errorMessage = "Failed to create record";
     if (error.error?.type === "INVALID_VALUE_FOR_COLUMN") {
       errorMessage = "Invalid field value provided";
@@ -31,12 +49,31 @@ export async function POST(req: Request) {
       errorMessage = error.error.message;
     }
 
-    return NextResponse.json({
-      error: errorMessage,
-      details: error.error,
-      fields: safeFields
-    }, { status: res.status });
+    return NextResponse.json(
+      {
+        error: errorMessage,
+        details: error.error,
+        fields: safeFields
+      },
+      { status: res.status }
+    );
   }
 
-  return NextResponse.json(await res.json());
+  const created = (await res.json()) as { id: string; fields: Record<string, unknown> };
+  const { ipAddress, userAgent } = getRequestContext(req);
+
+  if (isBlogTopic) {
+    await logAuditEvent({
+      userId: user.id,
+      userEmail: user.email,
+      action: "blog.topic_submitted",
+      resourceType: "blog_pipeline",
+      resourceId: created.id,
+      metadata: { title: String(safeFields["Blog Title"]) },
+      ipAddress,
+      userAgent
+    });
+  }
+
+  return NextResponse.json(created);
 }

@@ -5,7 +5,11 @@ import type { GoogleAdsCreativeRow } from "@/lib/google-ads/types";
 import { COPY } from "@/lib/copy";
 import { aggregateByField, buildCostBreakdown } from "@/lib/google-ads/metrics";
 import { ADS_CHART_COLORS, adsChartAxisProps } from "@/components/google-ads/chartTheme";
+import type { DateRange } from "@/lib/date-range/types";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { adsFilename, creativeColumns } from "@/lib/csv/columns";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency, formatNumber, formatPercent, formatRoas } from "@/lib/utils/format";
 
@@ -15,7 +19,13 @@ function truncateLabel(label: string, max = 36): string {
   return label.length > max ? `${label.slice(0, max)}…` : label;
 }
 
-export function CreativesTab({ creatives }: { creatives: GoogleAdsCreativeRow[] }) {
+export function CreativesTab({
+  creatives,
+  dateRange
+}: {
+  creatives: GoogleAdsCreativeRow[];
+  dateRange: DateRange;
+}) {
   const typeCopy = COPY.googleAds.creatives.adType;
   const topCopy = COPY.googleAds.creatives.topPerformers;
   const tableCopy = COPY.googleAds.creatives.performanceTable;
@@ -85,9 +95,20 @@ export function CreativesTab({ creatives }: { creatives: GoogleAdsCreativeRow[] 
       </div>
 
       <section className="rounded-xl border border-border bg-surface p-6">
-        <SectionTitle title={tableCopy.title} subtitle={tableCopy.subtitle} />
+        <SectionHeaderRow
+          title={tableCopy.title}
+          subtitle={tableCopy.subtitle}
+          actions={
+            <CSVExportButton
+              data={sorted}
+              columns={creativeColumns}
+              filename={adsFilename("creatives", dateRange)}
+              resourceType="google-ads-creatives"
+            />
+          }
+        />
         {sorted.length === 0 ? (
-          <p className="text-sm text-textMuted">{COPY.googleAds.empty.creatives}</p>
+          <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">

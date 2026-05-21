@@ -1,18 +1,24 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseUrl } from "@/lib/supabase/config";
 
 export type SeedAccount = {
   email: string;
   password: string;
-  role: "admin" | "user";
+  role: "admin" | "editor" | "viewer";
 };
 
+/** @deprecated Test accounts — disable via scripts/disable-test-users.mjs */
 export const DEFAULT_SEED_ACCOUNTS: SeedAccount[] = [
   { email: "admin@gmail.com", password: "energybits123", role: "admin" },
-  { email: "user@gmail.com", password: "energybits321", role: "user" }
+  { email: "user@gmail.com", password: "energybits321", role: "editor" }
 ];
 
-export function getServiceRoleClient() {
+/** Server-only Supabase client with service role. Never import from client components. */
+export function createServiceRoleClient(): SupabaseClient | null {
+  return getServiceRoleClient();
+}
+
+export function getServiceRoleClient(): SupabaseClient | null {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!serviceKey) {
     return null;

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { SignInForm } from "@/components/auth/SignInForm";
+import { COPY } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +47,8 @@ export default function LoginPage() {
 
         <section className="w-full max-w-md">
           <div className="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-6 shadow-2xl shadow-black/40 backdrop-blur-md sm:p-8">
-            <h2 className="text-xl font-semibold text-white">Welcome back</h2>
-            <p className="mt-1 text-sm text-slate-400">Use your team credentials to continue.</p>
+            <h2 className="text-xl font-semibold text-white">{COPY.auth.login.welcomeTitle}</h2>
+            <p className="mt-1 text-sm text-slate-400">{COPY.auth.login.welcomeSubtitle}</p>
             <div className="mt-6">
               <Suspense fallback={<SignInFormFallback />}>
                 <SignInForm />

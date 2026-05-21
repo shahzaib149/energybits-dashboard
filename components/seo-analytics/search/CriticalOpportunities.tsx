@@ -3,8 +3,17 @@
 import { Fragment, useState } from "react";
 import type { SEOTrackingRow } from "@/lib/airtable/types";
 import { COPY } from "@/lib/copy";
-import { SectionTitle } from "@/components/ui/SectionTitle";
+import type { DateRange } from "@/lib/date-range/types";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { seoCriticalColumns, seoFilename } from "@/lib/csv/columns";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import {
+  ActionStatusFilterBar,
+  StatusToggle,
+  filterByActionStatus,
+  type ActionStatusFilter
+} from "@/components/seo-analytics/StatusToggle";
 import { formatNumber, formatPercent, formatPosition } from "@/lib/utils/format";
 
 function priorityVariant(priority: SEOTrackingRow["seoPriority"]) {
@@ -13,19 +22,38 @@ function priorityVariant(priority: SEOTrackingRow["seoPriority"]) {
   return "muted" as const;
 }
 
-export function CriticalOpportunities({ rows }: { rows: SEOTrackingRow[] }) {
+export function CriticalOpportunities({
+  rows,
+  canEdit,
+  dateRange
+}: {
+  rows: SEOTrackingRow[];
+  canEdit: boolean;
+  dateRange: DateRange;
+}) {
   const copy = COPY.seoAnalytics.search.critical;
-  const sorted = [...rows].sort((a, b) => b.impressions - a.impressions);
+  const emptyCopy = COPY.dateRange.emptyForRange;
+  const [filter, setFilter] = useState<ActionStatusFilter>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const filtered = filterByActionStatus([...rows].sort((a, b) => b.impressions - a.impressions), filter);
 
   return (
     <section className="rounded-xl border border-border bg-surface p-6">
-      <SectionTitle
-        title={`🔥 ${copy.title} (${sorted.length})`}
+      <SectionHeaderRow
+        title={`🔥 ${copy.title} (${filtered.length})`}
         subtitle={copy.subtitle}
+        actions={
+          <CSVExportButton
+            data={filtered}
+            columns={seoCriticalColumns}
+            filename={seoFilename("critical-seo", dateRange)}
+            resourceType="seo-critical"
+          />
+        }
       />
-      {sorted.length === 0 ? (
-        <p className="text-sm text-textMuted">{COPY.seoAnalytics.empty.critical}</p>
+      <ActionStatusFilterBar value={filter} onChange={setFilter} />
+      {filtered.length === 0 ? (
+        <p className="text-sm text-textMuted">{emptyCopy}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -37,11 +65,12 @@ export function CriticalOpportunities({ rows }: { rows: SEOTrackingRow[] }) {
                 <th className="py-2 pr-3">CTR</th>
                 <th className="py-2 pr-3">Impressions</th>
                 <th className="py-2 pr-3">Type</th>
+                <th className="py-2 pr-3">{COPY.seoAnalytics.actionStatus.label}</th>
                 <th className="py-2">Action</th>
               </tr>
             </thead>
             <tbody>
-              {sorted.map((row) => (
+              {filtered.map((row) => (
                 <Fragment key={row.id}>
                   <tr className="border-b border-border/60">
                     <td className="py-3 pr-3 font-medium text-textPrimary">{row.query}</td>
@@ -53,6 +82,9 @@ export function CriticalOpportunities({ rows }: { rows: SEOTrackingRow[] }) {
                     <td className="py-3 pr-3 tabular-nums">{formatNumber(row.impressions)}</td>
                     <td className="py-3 pr-3">
                       <StatusBadge variant={priorityVariant(row.seoPriority)}>{row.seoOpportunityType}</StatusBadge>
+                    </td>
+                    <td className="py-3 pr-3">
+                      <StatusToggle recordId={row.id} currentStatus={row.actionStatus} canEdit={canEdit} />
                     </td>
                     <td className="py-3">
                       <button
@@ -66,7 +98,7 @@ export function CriticalOpportunities({ rows }: { rows: SEOTrackingRow[] }) {
                   </tr>
                   {expandedId === row.id ? (
                     <tr className="bg-surfaceElevated">
-                      <td colSpan={7} className="px-3 py-3 text-sm text-textSecondary">
+                      <td colSpan={8} className="px-3 py-3 text-sm text-textSecondary">
                         {row.recommendedAction}
                       </td>
                     </tr>

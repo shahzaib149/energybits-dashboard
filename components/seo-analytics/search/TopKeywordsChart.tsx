@@ -3,15 +3,24 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { SEOTrackingRow } from "@/lib/airtable/types";
 import { COPY } from "@/lib/copy";
+import type { DateRange } from "@/lib/date-range/types";
 import { dedupeKeywordsByQuery } from "@/lib/seo-analytics/metrics";
 import { CHART_COLORS, ChartTooltip, chartAxisProps } from "@/components/seo-analytics/chartTheme";
-import { SectionTitle } from "@/components/ui/SectionTitle";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { seoFilename, seoKeywordColumns } from "@/lib/csv/columns";
 import { formatNumber, formatPercent, formatPosition } from "@/lib/utils/format";
 
-export function TopKeywordsChart({ keywords }: { keywords: SEOTrackingRow[] }) {
+export function TopKeywordsChart({
+  keywords,
+  dateRange
+}: {
+  keywords: SEOTrackingRow[];
+  dateRange: DateRange;
+}) {
   const copy = COPY.seoAnalytics.search.topKeywords;
-  const data = dedupeKeywordsByQuery(keywords)
-    .sort((a, b) => b.clicks - a.clicks)
+  const exportRows = dedupeKeywordsByQuery(keywords).sort((a, b) => b.clicks - a.clicks);
+  const data = exportRows
     .slice(0, 15)
     .map((row) => ({
       keyword: row.query.length > 42 ? `${row.query.slice(0, 42)}…` : row.query,
@@ -25,7 +34,18 @@ export function TopKeywordsChart({ keywords }: { keywords: SEOTrackingRow[] }) {
 
   return (
     <section className="rounded-xl border border-border bg-surface p-6">
-      <SectionTitle title={copy.title} subtitle={copy.subtitle} />
+      <SectionHeaderRow
+        title={copy.title}
+        subtitle={copy.subtitle}
+        actions={
+          <CSVExportButton
+            data={exportRows}
+            columns={seoKeywordColumns}
+            filename={seoFilename("top-keywords", dateRange)}
+            resourceType="seo-keywords"
+          />
+        }
+      />
       <div className="h-[360px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>

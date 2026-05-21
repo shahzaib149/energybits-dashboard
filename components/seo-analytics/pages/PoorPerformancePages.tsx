@@ -1,17 +1,39 @@
+"use client";
+
 import type { GA4PageRow } from "@/lib/airtable/types";
+import type { DateRange } from "@/lib/date-range/types";
 import { COPY } from "@/lib/copy";
-import { SectionTitle } from "@/components/ui/SectionTitle";
+import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
+import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { ga4PageColumns, seoFilename } from "@/lib/csv/columns";
 import { cn } from "@/lib/utils";
 import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/format";
 
-export function PoorPerformancePages({ rows }: { rows: GA4PageRow[] }) {
+export function PoorPerformancePages({
+  rows,
+  dateRange
+}: {
+  rows: GA4PageRow[];
+  dateRange: DateRange;
+}) {
   const copy = COPY.seoAnalytics.pages.poorPerformance;
 
   return (
     <section className="rounded-xl border border-border bg-surface p-6">
-      <SectionTitle title={`⚠️ ${copy.title}`} subtitle={copy.subtitle} />
+      <SectionHeaderRow
+        title={`⚠️ ${copy.title}`}
+        subtitle={copy.subtitle}
+        actions={
+          <CSVExportButton
+            data={rows}
+            columns={ga4PageColumns}
+            filename={seoFilename("poor-performance-pages", dateRange)}
+            resourceType="ga4-poor-performance"
+          />
+        }
+      />
       {rows.length === 0 ? (
-        <p className="text-sm text-textMuted">{COPY.seoAnalytics.empty.poorPerformance}</p>
+        <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">

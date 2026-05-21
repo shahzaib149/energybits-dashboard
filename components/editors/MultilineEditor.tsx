@@ -10,12 +10,14 @@ export function MultilineEditor({
   value,
   disabled,
   status,
-  onSave
+  onSave,
+  displayClassName
 }: {
   value?: string;
   disabled?: boolean;
   status: SaveStatus;
   onSave: (value: string) => Promise<any> | void;
+  displayClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
@@ -26,7 +28,7 @@ export function MultilineEditor({
     <>
       <SaveIndicator status={status} editable={!disabled}>
         <button type="button" disabled={disabled} onClick={() => setOpen(true)} className="flex w-full items-start justify-between gap-2 rounded-lg px-2 py-1.5 text-left">
-          <span className="line-clamp-2 text-sm text-slate-700">{value || "—"}</span>
+          <span className={displayClassName ?? "line-clamp-2 text-sm text-slate-700"}>{value || "—"}</span>
           {!disabled ? <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /> : null}
         </button>
       </SaveIndicator>

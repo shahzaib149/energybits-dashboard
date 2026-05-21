@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Brain,
+  ClipboardList,
   FolderKanban,
   Globe2,
   LayoutDashboard,
@@ -19,24 +20,63 @@ import {
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/hooks/useSidebar";
+import { permissions, type Role } from "@/lib/auth/permissions";
 
-const items = [
+const analyticsItems = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/seo-analytics", label: "SEO Analytics", icon: BarChart3 },
   { href: "/aeo-analytics", label: "AEO Analytics", icon: Brain },
   { href: "/geo-analytics", label: "GEO Analytics", icon: Globe2 },
-  { href: "/google-ads-analytics", label: "Google Ads", icon: Megaphone },
+  { href: "/google-ads-analytics", label: "Google Ads", icon: Megaphone }
+];
+
+const workflowItems = [
   { href: "/keywords", label: "SEO Recommendation", icon: Search },
   { href: "/aeo-prompts", label: "AEO Recommendation", icon: MessageSquareQuote },
-  { href: "/blog-pipeline", label: "Blogs", icon: FolderKanban }
+  { href: "/blog-pipeline/status", label: "Blog Pipeline", icon: FolderKanban }
 ];
+
+const adminItems = [{ href: "/admin/audit-log", label: "Audit Log", icon: ClipboardList }];
 
 const expandedWidth = "lg:w-72";
 const collapsedWidth = "lg:w-[4.75rem]";
 
-export function Sidebar() {
+type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
+
+function NavLink({
+  item,
+  pathname,
+  showLabels,
+  onNavigate
+}: {
+  item: NavItem;
+  pathname: string;
+  showLabels: boolean;
+  onNavigate: () => void;
+}) {
+  const Icon = item.icon;
+  const active = pathname === item.href;
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      title={!showLabels ? item.label : undefined}
+      className={cn(
+        "flex items-center gap-3 rounded-xl text-sm font-medium transition-colors",
+        showLabels ? "px-4 py-3" : "justify-center px-0 py-3",
+        active ? "bg-slate-800 text-white shadow-soft" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+      )}
+    >
+      <Icon className="h-5 w-5 shrink-0" />
+      {showLabels ? <span className="truncate">{item.label}</span> : null}
+    </Link>
+  );
+}
+
+export function Sidebar({ userRole }: { userRole: Role | null }) {
   const pathname = usePathname();
   const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen, ready } = useSidebar();
+  const showAdmin = userRole !== null && permissions.canViewAuditLog(userRole);
 
   function closeMobile() {
     setMobileOpen(false);
@@ -61,29 +101,29 @@ export function Sidebar() {
   function NavLinks({ showLabels }: { showLabels: boolean }) {
     return (
       <>
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active = pathname === item.href;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={closeMobile}
-              title={!showLabels ? item.label : undefined}
-              className={cn(
-                "flex items-center gap-3 rounded-xl text-sm font-medium transition-colors",
-                showLabels ? "px-4 py-3" : "justify-center px-0 py-3",
-                active
-                  ? "bg-slate-800 text-white shadow-soft"
-                  : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
-              )}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-              {showLabels ? <span className="truncate">{item.label}</span> : null}
-            </Link>
-          );
-        })}
+        {analyticsItems.map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} showLabels={showLabels} onNavigate={closeMobile} />
+        ))}
+        {showLabels ? (
+          <p className="mb-1 mt-4 px-4 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Workflow</p>
+        ) : (
+          <div className="my-2 border-t border-slate-800" />
+        )}
+        {workflowItems.map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} showLabels={showLabels} onNavigate={closeMobile} />
+        ))}
+        {showAdmin ? (
+          <>
+            {showLabels ? (
+              <p className="mb-1 mt-4 px-4 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Admin</p>
+            ) : (
+              <div className="my-2 border-t border-slate-800" />
+            )}
+            {adminItems.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} showLabels={showLabels} onNavigate={closeMobile} />
+            ))}
+          </>
+        ) : null}
       </>
     );
   }

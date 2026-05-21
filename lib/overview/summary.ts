@@ -38,6 +38,8 @@ export interface AnalyticsChannelSummary {
   accent: "brand" | "sky" | "green" | "amber";
 }
 
+import type { DateRange } from "@/lib/date-range/types";
+
 export interface OverviewHubData {
   projectUrl: string | null;
   standingLabel: string;
@@ -52,7 +54,10 @@ function weakestGeoCategory(categories: Array<{ name: string; score: number }>):
   return `${sorted[0].name} (${sorted[0].score}/100)`;
 }
 
-export async function fetchOverviewHubData(runId?: string): Promise<OverviewHubData> {
+export async function fetchOverviewHubData(
+  runId?: string,
+  dateRange?: DateRange
+): Promise<OverviewHubData> {
   const channels: AnalyticsChannelSummary[] = [];
   let projectUrl: string | null = null;
 
@@ -145,8 +150,8 @@ export async function fetchOverviewHubData(runId?: string): Promise<OverviewHubD
   if (isSEOAnalyticsConfigured()) {
     try {
       const [keywords, critical] = await Promise.all([
-        airtable.getSEOKeywords({ limit: 500 }),
-        airtable.getCriticalKeywords()
+        airtable.getSEOKeywords({ limit: 500, dateRange }),
+        airtable.getCriticalKeywords(dateRange)
       ]);
       const clicks = sumClicks(keywords);
       channels.push({
@@ -187,7 +192,7 @@ export async function fetchOverviewHubData(runId?: string): Promise<OverviewHubD
 
   if (isGoogleAdsConfigured()) {
     try {
-      const campaigns = await googleAds.getCampaigns();
+      const campaigns = await googleAds.getCampaigns(undefined, dateRange);
       const spend = sumCost(campaigns);
       const roas = overallRoas(campaigns);
       channels.push({
