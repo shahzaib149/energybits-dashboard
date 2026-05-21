@@ -8,6 +8,7 @@ import { aggregateByField, buildCostBreakdown, matchTypeColor, topByRoas } from 
 import { ADS_CHART_COLORS, adsChartAxisProps } from "@/components/google-ads/chartTheme";
 import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
 import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { PaginatedTable } from "@/components/ui/PaginatedTable";
 import { adsFilename, keywordColumns } from "@/lib/csv/columns";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { formatCurrency, formatCurrencyCompact, formatNumber, formatPercent, formatRoas } from "@/lib/utils/format";
@@ -187,45 +188,70 @@ export function KeywordsTab({
         {sorted.length === 0 ? (
           <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
-                  <th className="py-2 pr-3">Keyword</th>
-                  <th className="py-2 pr-3">Match</th>
-                  <th className="py-2 pr-3">Campaign</th>
-                  <th className="py-2 pr-3">Spend</th>
-                  <th className="py-2 pr-3">Clicks</th>
-                  <th className="py-2 pr-3">CTR</th>
-                  <th className="py-2">ROAS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((row) => (
-                  <tr key={row.id} className="border-b border-border/60">
-                    <td className="max-w-[160px] truncate py-3 pr-3 font-medium text-textPrimary" title={row.keywordText}>
-                      {row.keywordText}
-                    </td>
-                    <td className="py-3 pr-3">
-                      <span
-                        className="inline-flex rounded-md border px-2 py-0.5 text-xs font-medium"
-                        style={{ borderColor: `${matchTypeColor(row.matchType)}40`, color: matchTypeColor(row.matchType) }}
-                      >
-                        {row.matchType}
-                      </span>
-                    </td>
-                    <td className="max-w-[140px] truncate py-3 pr-3 text-textSecondary" title={row.campaignName}>
-                      {row.campaignName}
-                    </td>
-                    <td className="py-3 pr-3 tabular-nums">{formatCurrency(row.cost)}</td>
-                    <td className="py-3 pr-3 tabular-nums">{formatNumber(row.clicks)}</td>
-                    <td className="py-3 pr-3 tabular-nums">{formatPercent(row.ctrPct)}</td>
-                    <td className="py-3 tabular-nums font-medium text-brand">{formatRoas(row.roas)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PaginatedTable
+            rows={sorted}
+            columns={[
+              {
+                id: "keyword",
+                header: "Keyword",
+                searchValue: (row) => row.keywordText,
+                render: (row) => (
+                  <span className="block max-w-[160px] truncate font-medium text-textPrimary" title={row.keywordText}>
+                    {row.keywordText}
+                  </span>
+                )
+              },
+              {
+                id: "match",
+                header: "Match",
+                searchValue: (row) => row.matchType,
+                render: (row) => (
+                  <span
+                    className="inline-flex rounded-md border px-2 py-0.5 text-xs font-medium"
+                    style={{ borderColor: `${matchTypeColor(row.matchType)}40`, color: matchTypeColor(row.matchType) }}
+                  >
+                    {row.matchType}
+                  </span>
+                )
+              },
+              {
+                id: "campaign",
+                header: "Campaign",
+                searchValue: (row) => row.campaignName,
+                render: (row) => (
+                  <span className="block max-w-[140px] truncate text-textSecondary" title={row.campaignName}>
+                    {row.campaignName}
+                  </span>
+                )
+              },
+              {
+                id: "spend",
+                header: "Spend",
+                className: "tabular-nums",
+                render: (row) => formatCurrency(row.cost)
+              },
+              {
+                id: "clicks",
+                header: "Clicks",
+                className: "tabular-nums",
+                render: (row) => formatNumber(row.clicks)
+              },
+              {
+                id: "ctr",
+                header: "CTR",
+                className: "tabular-nums",
+                render: (row) => formatPercent(row.ctrPct)
+              },
+              {
+                id: "roas",
+                header: "ROAS",
+                className: "tabular-nums font-medium text-brand",
+                render: (row) => formatRoas(row.roas)
+              }
+            ]}
+            getRowKey={(row) => row.id}
+            searchPlaceholder="Search keywords or campaigns…"
+          />
         )}
       </section>
     </div>

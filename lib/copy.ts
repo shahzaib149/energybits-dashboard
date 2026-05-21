@@ -403,9 +403,31 @@ export const COPY = {
     },
     title: "Blog pipeline",
     subtitle: "Where each blog topic is in the production process",
-    statusCounts: "Ready ({ready}) · Drafting ({drafting}) · Review ({review}) · Published ({published})",
+    statusCounts: "Creating ({creating}) · Ready ({ready}) · Drafting ({drafting}) · Review ({review}) · Published ({published})",
     empty: "No blog topics in the pipeline yet. Submit one to get started.",
     submitCta: "Submit a topic",
+    creatingHint: "Blog is being created…",
+    submitModal: {
+      eyebrow: "Blog pipeline",
+      title: "Submit a topic",
+      subtitle: "Enter your blog topic — we'll attach the best matching keyword and AEO prompt automatically.",
+      blogTitleLabel: "Blog topic",
+      blogTitlePlaceholder: "e.g. Spirulina benefits for endurance athletes",
+      autoSuggestions: "Auto-matched from your recommendations",
+      suggestedKeyword: "Suggested keyword",
+      suggestedPrompt: "Suggested AEO prompt",
+      noKeywordMatch: "No close keyword match — your topic will still be submitted.",
+      noPromptMatch: "No close AEO prompt match — your topic will still be submitted.",
+      matching: "Finding matching recommendations…",
+      loadingRecs: "Loading recommendations…",
+      loadRecsError: "Could not load recommendations.",
+      titleRequired: "Blog topic is required.",
+      submit: "Submit & create blog",
+      submitting: "Creating blog…",
+      submitFailed: "Could not submit topic.",
+      webhookWarning: "Topic saved but webhook failed",
+      success: "Blog creation started — it will appear here when ready."
+    },
     editTopic: "Edit topic",
     editTooltip: "Edit this topic before AI starts drafting it.",
     deleteTopic: "Delete topic",
@@ -565,6 +587,157 @@ export const COPY = {
       creatives: "No creative data synced yet.",
       keywords: "No keyword data synced yet."
     }
+  },
+  criteoAds: {
+    meta: {
+      title: "Criteo Ads Analytics · ENERGYbits",
+      description: "Retargeting and display performance across Criteo campaigns, ads, and daily metrics."
+    },
+    header: {
+      eyebrow: "Retargeting Performance",
+      title: "Criteo Ads Analytics",
+      subtitle: "Campaign, ad, and cost-performance metrics from your Criteo advertising data",
+      lastUpdated: "Latest day"
+    },
+    notConfigured: {
+      title: "Criteo Ads Analytics not configured",
+      description: "Add Criteo Airtable base and table IDs to .env.local. See .env.example for required keys."
+    },
+    loadError: "Unable to load Criteo Ads Analytics data.",
+    tabs: {
+      overview: "Overview",
+      campaigns: "Campaigns",
+      ads: "Ads",
+      daily: "Daily"
+    },
+    metrics: {
+      totalSpend: {
+        label: "Advertiser Cost",
+        tooltip: "Total amount spent on Criteo ads in the selected date range.",
+        description: "Ad spend across all campaigns"
+      },
+      totalClicks: {
+        label: "Total Clicks",
+        tooltip: "Total clicks your Criteo ads received.",
+        description: "Clicks on your ads"
+      },
+      totalDisplays: {
+        label: "Total Displays",
+        tooltip: "Total ad impressions (displays) served.",
+        description: "Impressions served"
+      },
+      overallRoas: {
+        label: "Overall ROAS",
+        tooltip: "Return on Ad Spend — revenue generated per dollar spent.",
+        description: "Revenue per dollar spent"
+      },
+      totalRevenue: {
+        label: "Revenue Generated",
+        tooltip: "Total revenue attributed to Criteo campaigns.",
+        description: "Attributed revenue"
+      }
+    },
+    overview: {
+      summary: {
+        title: "All-time summary",
+        subtitle: "Overall performance from Criteo Overall Analytics",
+        empty: "No overall summary synced yet.",
+        reach: "Reach",
+        frequency: "Frequency",
+        ctr: "CTR",
+        cpc: "CPC",
+        ecpm: "eCPM",
+        sales: "Sales",
+        revenue: "Revenue",
+        roas: "ROAS",
+        totals: "Lifetime totals"
+      },
+      spendTrend: {
+        title: "Daily spend trend",
+        subtitle: "Advertiser cost over time in the selected range"
+      },
+      topCampaigns: {
+        title: "Top campaigns by spend",
+        subtitle: "Campaigns using the most budget"
+      },
+      campaignBreakdown: {
+        title: "Spend by campaign",
+        subtitle: "How budget is distributed across campaigns"
+      }
+    },
+    campaigns: {
+      performanceTable: {
+        title: "Campaign performance",
+        subtitle: "Aggregated metrics by campaign for the selected date range"
+      },
+      topRoas: {
+        title: "Best ROAS campaigns",
+        subtitle: "Campaigns generating the most revenue per dollar spent",
+        empty: "Not enough spend data to rank campaigns by ROAS yet."
+      }
+    },
+    ads: {
+      topSpend: {
+        title: "Top ads by spend",
+        subtitle: "Individual ads driving the most budget"
+      },
+      performanceTable: {
+        title: "Ad performance",
+        subtitle: "Aggregated metrics by ad for the selected date range"
+      },
+      topRoas: {
+        title: "Highest ROAS ads",
+        subtitle: "Ads delivering the best return on spend",
+        empty: "Not enough spend data to rank ads by ROAS yet."
+      }
+    },
+    daily: {
+      performanceTable: {
+        title: "Daily analytics",
+        subtitle: "Granular daily campaign and ad performance"
+      }
+    }
+  },
+  vibeAds: {
+    meta: {
+      title: "Vibe.co Analytics · ENERGYbits",
+      description: "Connected TV and streaming campaign performance from Vibe.co."
+    },
+    header: {
+      eyebrow: "Connected TV Performance",
+      title: "Vibe.co Analytics",
+      subtitle: "Campaign, channel, and creative performance across screens and regions",
+      lastUpdated: "Latest date"
+    },
+    notConfigured: {
+      title: "Vibe.co Analytics not configured",
+      description: "Add Vibe.co Airtable base and table IDs to .env.local. See .env.example."
+    },
+    loadError: "Unable to load Vibe.co Analytics data.",
+    tabs: {
+      overview: "Overview",
+      campaigns: "Campaigns",
+      channels: "Channels",
+      creatives: "Creatives",
+      detail: "Detail"
+    },
+    metrics: {
+      spend: { label: "Total Spend", tooltip: "Total ad spend in the selected range.", description: "Media spend" },
+      impressions: { label: "Impressions", tooltip: "Total ad impressions served.", description: "Ads served" },
+      completedViews: { label: "Completed Views", tooltip: "Views watched to completion.", description: "Full ad views" },
+      households: { label: "Households", tooltip: "Unique households reached.", description: "Reach (households)" },
+      roas: { label: "Avg ROAS", tooltip: "Average return on ad spend.", description: "Return on spend" }
+    },
+    overview: {
+      spendTrend: { title: "Daily spend trend", subtitle: "Spend over time in the selected range" },
+      topCampaigns: { title: "Top campaigns by spend", subtitle: "Campaigns using the most budget" },
+      channelBreakdown: { title: "Spend by channel", subtitle: "Budget split across channels" }
+    },
+    campaigns: { table: { title: "Campaign performance", subtitle: "Aggregated by campaign" } },
+    channels: { table: { title: "Channel performance", subtitle: "Aggregated by channel" } },
+    creatives: { table: { title: "Creative performance", subtitle: "Aggregated by creative" } },
+    detail: { table: { title: "Row-level analytics", subtitle: "All impression rows for the selected range" } },
+    topRoas: { title: "Best ROAS", subtitle: "Top performers by return on spend" }
   },
   dateRange: {
     label: "Date range",

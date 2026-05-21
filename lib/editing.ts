@@ -61,7 +61,7 @@ export const TABLE_EDIT_CONFIG: Record<TableName, TableConfig> = {
   "Blog Pipeline": {
     editableFields: [
       { field: "Blog Title", label: "Blog Title", type: "singleLineText", required: true, create: true },
-      { field: "Blog Status", label: "Blog Status", type: "singleSelect", create: true, options: choiceList(["Ready", "Draft Generated", "Needs Review", "Revision Needed", "Approved", "Image Ready", "Shopify Draft Created", "Scheduled", "Published"]) },
+      { field: "Blog Status", label: "Blog Status", type: "singleSelect", create: true, options: choiceList(["Creating", "Ready", "Draft Generated", "Needs Review", "Revision Needed", "Approved", "Image Ready", "Shopify Draft Created", "Scheduled", "Published"]) },
       { field: "AI Draft", label: "AI Draft", type: "multilineText" },
       { field: "Human Edited Draft", label: "Human Edited Draft", type: "multilineText" },
       { field: "Meta Title", label: "Meta Title", type: "singleLineText" },

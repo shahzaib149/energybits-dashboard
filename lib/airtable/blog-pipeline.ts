@@ -1,6 +1,7 @@
 import type { AirtableRecordRaw } from "@/lib/airtable/types";
 
 export type BlogStatus =
+  | "Creating"
   | "Ready"
   | "Draft Generated"
   | "Needs Review"
@@ -34,6 +35,7 @@ function asString(value: unknown): string {
 function asBlogStatus(value: unknown): BlogStatus {
   const text = asString(value);
   const allowed: BlogStatus[] = [
+    "Creating",
     "Ready",
     "Draft Generated",
     "Needs Review",
@@ -92,6 +94,7 @@ export function blogFieldsToAirtable(row: Partial<BlogPipelineRow>): Record<stri
 }
 
 export const statusColors: Record<BlogStatus, string> = {
+  Creating: "bg-cyan-500/20 text-cyan-300 animate-pulse",
   Ready: "bg-gray-500/20 text-gray-300",
   "Draft Generated": "bg-blue-500/20 text-blue-300",
   "Needs Review": "bg-amber-500/20 text-amber-300",

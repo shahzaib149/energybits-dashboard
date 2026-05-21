@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const ALL_STATUSES: (BlogStatus | "all")[] = [
   "all",
+  "Creating",
   "Ready",
   "Draft Generated",
   "Needs Review",
@@ -45,6 +46,7 @@ export function PipelineStatusFilters({
 export function StatusCountPills({ counts }: { counts: Record<string, number> }) {
   const copy = COPY.blogPipeline;
   const text = copy.statusCounts
+    .replace("{creating}", String(counts.creating ?? 0))
     .replace("{ready}", String(counts.ready ?? 0))
     .replace("{drafting}", String(counts.drafting ?? 0))
     .replace("{review}", String(counts.review ?? 0))

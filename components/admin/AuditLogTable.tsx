@@ -2,6 +2,9 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { TablePagination } from "@/components/ui/TablePagination";
+import { TableSearch } from "@/components/ui/TableSearch";
+import { usePagination } from "@/hooks/usePagination";
 import { staticFilename } from "@/lib/csv/columns";
 import type { CSVColumn } from "@/lib/csv/build";
 import type { AuditLogRow } from "@/lib/audit/types";
@@ -136,6 +139,19 @@ export function AuditLogTable({ rows }: { rows: AuditLogRow[] }) {
   const copy = COPY.auth.auditLog;
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filtered, setFiltered] = useState(rows);
+  const [search, setSearch] = useState("");
+  const searched = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return filtered;
+    return filtered.filter((row) =>
+      [row.user_email, row.action, row.resource_type, row.resource_id].some((value) =>
+        value?.toLowerCase().includes(query)
+      )
+    );
+  }, [filtered, search]);
+  const { paginatedItems, page, setPage, pageSize, setPageSize, totalPages, totalRows } = usePagination(searched, {
+    resetDeps: [search, filtered.length]
+  });
 
   if (rows.length === 0) {
     return (
@@ -156,9 +172,12 @@ export function AuditLogTable({ rows }: { rows: AuditLogRow[] }) {
           resourceType="audit-log"
         />
       </div>
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface p-4 sm:p-6">
+        {filtered.length >= 8 ? (
+          <TableSearch value={search} onChange={setSearch} placeholder="Search audit log…" className="mb-4" />
+        ) : null}
         <table className="min-w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 z-[1] bg-surface">
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
               <th className="px-4 py-3">{copy.columns.when}</th>
               <th className="px-4 py-3">{copy.columns.who}</th>
@@ -168,7 +187,14 @@ export function AuditLogTable({ rows }: { rows: AuditLogRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((row) => (
+            {paginatedItems.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-textMuted">
+                  No rows match your search.
+                </td>
+              </tr>
+            ) : (
+              paginatedItems.map((row) => (
               <Fragment key={row.id}>
                 <tr className="border-b border-border/60">
                   <td className="px-4 py-3 whitespace-nowrap" title={formatDateTime(row.created_at)}>
@@ -200,9 +226,18 @@ export function AuditLogTable({ rows }: { rows: AuditLogRow[] }) {
                   </tr>
                 ) : null}
               </Fragment>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
+        <TablePagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalRows={totalRows}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
     </div>
   );

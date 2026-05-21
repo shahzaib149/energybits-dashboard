@@ -9,6 +9,7 @@ import type { DateRange } from "@/lib/date-range/types";
 import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { PaginatedTable } from "@/components/ui/PaginatedTable";
 import { adsFilename, creativeColumns } from "@/lib/csv/columns";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency, formatNumber, formatPercent, formatRoas } from "@/lib/utils/format";
@@ -110,40 +111,63 @@ export function CreativesTab({
         {sorted.length === 0 ? (
           <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
-                  <th className="py-2 pr-3">Ad</th>
-                  <th className="py-2 pr-3">Type</th>
-                  <th className="py-2 pr-3">Campaign</th>
-                  <th className="py-2 pr-3">Clicks</th>
-                  <th className="py-2 pr-3">Spend</th>
-                  <th className="py-2 pr-3">Conv.</th>
-                  <th className="py-2">ROAS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((row) => (
-                  <tr key={row.id} className="border-b border-border/60">
-                    <td className="max-w-[180px] truncate py-3 pr-3 font-medium text-textPrimary" title={row.adName}>
-                      {row.adName}
-                    </td>
-                    <td className="py-3 pr-3">
-                      <StatusBadge variant="muted">{row.adType.replace(/_/g, " ")}</StatusBadge>
-                    </td>
-                    <td className="max-w-[140px] truncate py-3 pr-3 text-textSecondary" title={row.campaignName}>
-                      {row.campaignName}
-                    </td>
-                    <td className="py-3 pr-3 tabular-nums">{formatNumber(row.clicks)}</td>
-                    <td className="py-3 pr-3 tabular-nums">{formatCurrency(row.cost)}</td>
-                    <td className="py-3 pr-3 tabular-nums">{formatNumber(row.conversions)}</td>
-                    <td className="py-3 tabular-nums font-medium text-brand">{formatRoas(row.roas)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PaginatedTable
+            rows={sorted}
+            columns={[
+              {
+                id: "ad",
+                header: "Ad",
+                searchValue: (row) => row.adName,
+                render: (row) => (
+                  <span className="block max-w-[180px] truncate font-medium text-textPrimary" title={row.adName}>
+                    {row.adName}
+                  </span>
+                )
+              },
+              {
+                id: "type",
+                header: "Type",
+                searchValue: (row) => row.adType,
+                render: (row) => <StatusBadge variant="muted">{row.adType.replace(/_/g, " ")}</StatusBadge>
+              },
+              {
+                id: "campaign",
+                header: "Campaign",
+                searchValue: (row) => row.campaignName,
+                render: (row) => (
+                  <span className="block max-w-[140px] truncate text-textSecondary" title={row.campaignName}>
+                    {row.campaignName}
+                  </span>
+                )
+              },
+              {
+                id: "clicks",
+                header: "Clicks",
+                className: "tabular-nums",
+                render: (row) => formatNumber(row.clicks)
+              },
+              {
+                id: "spend",
+                header: "Spend",
+                className: "tabular-nums",
+                render: (row) => formatCurrency(row.cost)
+              },
+              {
+                id: "conv",
+                header: "Conv.",
+                className: "tabular-nums",
+                render: (row) => formatNumber(row.conversions)
+              },
+              {
+                id: "roas",
+                header: "ROAS",
+                className: "tabular-nums font-medium text-brand",
+                render: (row) => formatRoas(row.roas)
+              }
+            ]}
+            getRowKey={(row) => row.id}
+            searchPlaceholder="Search ads or campaigns…"
+          />
         )}
       </section>
     </div>

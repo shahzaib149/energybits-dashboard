@@ -9,6 +9,7 @@ import type { DateRange } from "@/lib/date-range/types";
 import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { PaginatedTable } from "@/components/ui/PaginatedTable";
 import { adGroupColumns, adsFilename } from "@/lib/csv/columns";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency, formatCurrencyCompact, formatNumber, formatPercent, formatRoas } from "@/lib/utils/format";
@@ -83,40 +84,65 @@ export function AdGroupsTab({
         {sorted.length === 0 ? (
           <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
-                  <th className="py-2 pr-3">Ad Group</th>
-                  <th className="py-2 pr-3">Campaign</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Spend</th>
-                  <th className="py-2 pr-3">Clicks</th>
-                  <th className="py-2 pr-3">CTR</th>
-                  <th className="py-2">ROAS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((row) => (
-                  <tr key={row.id} className="border-b border-border/60">
-                    <td className="max-w-[160px] truncate py-3 pr-3 font-medium text-textPrimary" title={row.adGroupName}>
-                      {row.adGroupName}
-                    </td>
-                    <td className="max-w-[160px] truncate py-3 pr-3 text-textSecondary" title={row.campaignName}>
-                      {row.campaignName}
-                    </td>
-                    <td className="py-3 pr-3">
-                      <StatusBadge variant={row.adGroupStatus === "ENABLED" ? "brand" : "muted"}>{row.adGroupStatus}</StatusBadge>
-                    </td>
-                    <td className="py-3 pr-3 tabular-nums">{formatCurrency(row.cost)}</td>
-                    <td className="py-3 pr-3 tabular-nums">{formatNumber(row.clicks)}</td>
-                    <td className="py-3 pr-3 tabular-nums">{formatPercent(row.ctrPct)}</td>
-                    <td className="py-3 tabular-nums font-medium text-brand">{formatRoas(row.roas)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PaginatedTable
+            rows={sorted}
+            columns={[
+              {
+                id: "adGroup",
+                header: "Ad Group",
+                searchValue: (row) => row.adGroupName,
+                render: (row) => (
+                  <span className="block max-w-[160px] truncate font-medium text-textPrimary" title={row.adGroupName}>
+                    {row.adGroupName}
+                  </span>
+                )
+              },
+              {
+                id: "campaign",
+                header: "Campaign",
+                searchValue: (row) => row.campaignName,
+                render: (row) => (
+                  <span className="block max-w-[160px] truncate text-textSecondary" title={row.campaignName}>
+                    {row.campaignName}
+                  </span>
+                )
+              },
+              {
+                id: "status",
+                header: "Status",
+                searchValue: (row) => row.adGroupStatus,
+                render: (row) => (
+                  <StatusBadge variant={row.adGroupStatus === "ENABLED" ? "brand" : "muted"}>{row.adGroupStatus}</StatusBadge>
+                )
+              },
+              {
+                id: "spend",
+                header: "Spend",
+                className: "tabular-nums",
+                render: (row) => formatCurrency(row.cost)
+              },
+              {
+                id: "clicks",
+                header: "Clicks",
+                className: "tabular-nums",
+                render: (row) => formatNumber(row.clicks)
+              },
+              {
+                id: "ctr",
+                header: "CTR",
+                className: "tabular-nums",
+                render: (row) => formatPercent(row.ctrPct)
+              },
+              {
+                id: "roas",
+                header: "ROAS",
+                className: "tabular-nums font-medium text-brand",
+                render: (row) => formatRoas(row.roas)
+              }
+            ]}
+            getRowKey={(row) => row.id}
+            searchPlaceholder="Search ad groups or campaigns…"
+          />
         )}
       </section>
     </div>

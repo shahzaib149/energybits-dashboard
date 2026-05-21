@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getAirtableClient } from "@/lib/airtable/client";
 import { getServerUser } from "@/lib/auth/getServerUser";
 import { permissions } from "@/lib/auth/permissions";
 import { COPY } from "@/lib/copy";
 import { PipelineStatusTable } from "@/components/blog-pipeline/PipelineStatusTable";
+import { SubmitTopicButton } from "@/components/blog-pipeline/SubmitTopicButton";
 import { isSEOAnalyticsConfigured } from "@/lib/seo-analytics/env";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -38,12 +38,7 @@ export default async function BlogPipelineStatusPage() {
           <h1 className="mt-1 text-2xl font-semibold text-textPrimary">{copy.title}</h1>
           <p className="mt-1 text-sm text-textSecondary">{copy.subtitle}</p>
         </div>
-        <Link
-          href="/blog-pipeline"
-          className="inline-flex rounded-lg border border-border px-4 py-2 text-sm font-medium text-textSecondary hover:border-brand/40 hover:text-brand"
-        >
-          {copy.submitCta}
-        </Link>
+        {canEdit ? <SubmitTopicButton /> : null}
       </header>
 
       <PipelineStatusTable initialRows={rows} canEdit={canEdit} />

@@ -1,11 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import type { GoogleAdsCampaignRow } from "@/lib/google-ads/types";
 import type { DateRange } from "@/lib/date-range/types";
 import { COPY } from "@/lib/copy";
 import { topByRoas } from "@/lib/google-ads/metrics";
 import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
 import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { PaginatedTable } from "@/components/ui/PaginatedTable";
 import { adsFilename, campaignColumns } from "@/lib/csv/columns";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -25,7 +27,67 @@ export function CampaignPerformanceTable({
   dateRange: DateRange;
 }) {
   const copy = COPY.googleAds.campaigns.performanceTable;
-  const sorted = [...campaigns].sort((a, b) => b.cost - a.cost);
+  const sorted = useMemo(() => [...campaigns].sort((a, b) => b.cost - a.cost), [campaigns]);
+
+  const columns = useMemo(
+    () => [
+      {
+        id: "campaign",
+        header: "Campaign",
+        searchValue: (row: GoogleAdsCampaignRow) => row.campaignName,
+        render: (row: GoogleAdsCampaignRow) => (
+          <span className="block max-w-[200px] truncate font-medium text-textPrimary" title={row.campaignName}>
+            {row.campaignName}
+          </span>
+        )
+      },
+      {
+        id: "status",
+        header: "Status",
+        searchValue: (row: GoogleAdsCampaignRow) => row.campaignStatus,
+        render: (row: GoogleAdsCampaignRow) => (
+          <StatusBadge variant={statusVariant(row.campaignStatus)}>{row.campaignStatus}</StatusBadge>
+        )
+      },
+      {
+        id: "type",
+        header: "Type",
+        searchValue: (row: GoogleAdsCampaignRow) => row.channelType,
+        render: (row: GoogleAdsCampaignRow) => row.channelType.replace(/_/g, " ")
+      },
+      {
+        id: "spend",
+        header: "Spend",
+        className: "tabular-nums",
+        render: (row: GoogleAdsCampaignRow) => formatCurrency(row.cost)
+      },
+      {
+        id: "clicks",
+        header: "Clicks",
+        className: "tabular-nums",
+        render: (row: GoogleAdsCampaignRow) => formatNumber(row.clicks)
+      },
+      {
+        id: "ctr",
+        header: "CTR",
+        className: "tabular-nums",
+        render: (row: GoogleAdsCampaignRow) => formatPercent(row.ctrPct)
+      },
+      {
+        id: "conv",
+        header: "Conv.",
+        className: "tabular-nums",
+        render: (row: GoogleAdsCampaignRow) => formatNumber(row.conversions)
+      },
+      {
+        id: "roas",
+        header: "ROAS",
+        className: "tabular-nums font-medium text-brand",
+        render: (row: GoogleAdsCampaignRow) => formatRoas(row.roas)
+      }
+    ],
+    []
+  );
 
   if (sorted.length === 0) {
     return (
@@ -50,40 +112,12 @@ export function CampaignPerformanceTable({
           />
         }
       />
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
-              <th className="py-2 pr-3">Campaign</th>
-              <th className="py-2 pr-3">Status</th>
-              <th className="py-2 pr-3">Type</th>
-              <th className="py-2 pr-3">Spend</th>
-              <th className="py-2 pr-3">Clicks</th>
-              <th className="py-2 pr-3">CTR</th>
-              <th className="py-2 pr-3">Conv.</th>
-              <th className="py-2">ROAS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((row) => (
-              <tr key={row.id} className="border-b border-border/60">
-                <td className="max-w-[200px] truncate py-3 pr-3 font-medium text-textPrimary" title={row.campaignName}>
-                  {row.campaignName}
-                </td>
-                <td className="py-3 pr-3">
-                  <StatusBadge variant={statusVariant(row.campaignStatus)}>{row.campaignStatus}</StatusBadge>
-                </td>
-                <td className="py-3 pr-3 text-textSecondary">{row.channelType.replace(/_/g, " ")}</td>
-                <td className="py-3 pr-3 tabular-nums">{formatCurrency(row.cost)}</td>
-                <td className="py-3 pr-3 tabular-nums">{formatNumber(row.clicks)}</td>
-                <td className="py-3 pr-3 tabular-nums">{formatPercent(row.ctrPct)}</td>
-                <td className="py-3 pr-3 tabular-nums">{formatNumber(row.conversions)}</td>
-                <td className="py-3 tabular-nums font-medium text-brand">{formatRoas(row.roas)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PaginatedTable
+        rows={sorted}
+        columns={columns}
+        getRowKey={(row) => row.id}
+        searchPlaceholder="Search campaigns…"
+      />
     </section>
   );
 }

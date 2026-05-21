@@ -1,11 +1,14 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import type { SEOTrackingRow } from "@/lib/airtable/types";
 import { COPY } from "@/lib/copy";
 import type { DateRange } from "@/lib/date-range/types";
 import { SectionHeaderRow } from "@/components/ui/SectionHeaderRow";
 import { CSVExportButton } from "@/components/ui/CSVExportButton";
+import { TablePagination } from "@/components/ui/TablePagination";
+import { TableSearch } from "@/components/ui/TableSearch";
+import { usePagination } from "@/hooks/usePagination";
 import { seoCriticalColumns, seoFilename } from "@/lib/csv/columns";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
@@ -34,8 +37,22 @@ export function CriticalOpportunities({
   const copy = COPY.seoAnalytics.search.critical;
   const emptyCopy = COPY.dateRange.emptyForRange;
   const [filter, setFilter] = useState<ActionStatusFilter>("all");
+  const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const filtered = filterByActionStatus([...rows].sort((a, b) => b.impressions - a.impressions), filter);
+  const filtered = useMemo(
+    () => filterByActionStatus([...rows].sort((a, b) => b.impressions - a.impressions), filter),
+    [rows, filter]
+  );
+  const searched = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return filtered;
+    return filtered.filter((row) =>
+      [row.query, row.pageUrl, row.seoOpportunityType].some((value) => value?.toLowerCase().includes(query))
+    );
+  }, [filtered, search]);
+  const { paginatedItems, page, setPage, pageSize, setPageSize, totalPages, totalRows } = usePagination(searched, {
+    resetDeps: [search, filter]
+  });
 
   return (
     <section className="rounded-xl border border-border bg-surface p-6">
@@ -55,22 +72,33 @@ export function CriticalOpportunities({
       {filtered.length === 0 ? (
         <p className="text-sm text-textMuted">{emptyCopy}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
-                <th className="py-2 pr-3">Keyword</th>
-                <th className="py-2 pr-3">Page</th>
-                <th className="py-2 pr-3">Position</th>
-                <th className="py-2 pr-3">CTR</th>
-                <th className="py-2 pr-3">Impressions</th>
-                <th className="py-2 pr-3">Type</th>
-                <th className="py-2 pr-3">{COPY.seoAnalytics.actionStatus.label}</th>
-                <th className="py-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((row) => (
+        <div className="mt-4 space-y-4">
+          {filtered.length >= 8 ? (
+            <TableSearch value={search} onChange={setSearch} placeholder="Search keywords, pages, or type…" />
+          ) : null}
+          <div className="overflow-x-auto rounded-lg ring-1 ring-border/40">
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 z-[1] bg-surface">
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
+                  <th className="py-2 pr-3">Keyword</th>
+                  <th className="py-2 pr-3">Page</th>
+                  <th className="py-2 pr-3">Position</th>
+                  <th className="py-2 pr-3">CTR</th>
+                  <th className="py-2 pr-3">Impressions</th>
+                  <th className="py-2 pr-3">Type</th>
+                  <th className="py-2 pr-3">{COPY.seoAnalytics.actionStatus.label}</th>
+                  <th className="py-2">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-sm text-textMuted">
+                      No rows match your search.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedItems.map((row) => (
                 <Fragment key={row.id}>
                   <tr className="border-b border-border/60">
                     <td className="py-3 pr-3 font-medium text-textPrimary">{row.query}</td>
@@ -104,9 +132,19 @@ export function CriticalOpportunities({
                     </tr>
                   ) : null}
                 </Fragment>
-              ))}
-            </tbody>
-          </table>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <TablePagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalRows={totalRows}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       )}
     </section>

@@ -15,6 +15,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  Target,
+  Tv,
   X
 } from "lucide-react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
@@ -27,7 +29,9 @@ const analyticsItems = [
   { href: "/seo-analytics", label: "SEO Analytics", icon: BarChart3 },
   { href: "/aeo-analytics", label: "AEO Analytics", icon: Brain },
   { href: "/geo-analytics", label: "GEO Analytics", icon: Globe2 },
-  { href: "/google-ads-analytics", label: "Google Ads", icon: Megaphone }
+  { href: "/google-ads-analytics", label: "Google Ads", icon: Megaphone },
+  { href: "/criteo-ads-analytics", label: "Criteo Ads", icon: Target },
+  { href: "/vibe-ads-analytics", label: "Vibe.co", icon: Tv }
 ];
 
 const workflowItems = [

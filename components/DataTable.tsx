@@ -1,8 +1,11 @@
 "use client";
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, EyeOff, Search, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, EyeOff } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { TablePagination } from "@/components/ui/TablePagination";
+import { TableSearch } from "@/components/ui/TableSearch";
+import { usePagination } from "@/hooks/usePagination";
 import { cn } from "@/lib/utils";
 
 export interface DataColumn<T> {
@@ -25,55 +28,6 @@ interface DataTableProps<T> {
   showColumnToggle?: boolean;
 }
 
-const PAGE_SIZE = 25;
-
-function PaginationBar({
-  currentPage,
-  totalPages,
-  totalRows,
-  pageSize,
-  onPrev,
-  onNext
-}: {
-  currentPage: number;
-  totalPages: number;
-  totalRows: number;
-  pageSize: number;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-      <p>
-        Showing {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, totalRows)} of {totalRows}
-      </p>
-      <div className="flex items-center justify-between gap-2 sm:justify-end">
-        <button
-          type="button"
-          onClick={onPrev}
-          disabled={currentPage === 1}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:py-1.5"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Prev
-        </button>
-        <span className="rounded-lg bg-slate-100 px-3 py-2 font-medium text-slate-700 sm:py-1.5">
-          {currentPage} / {totalPages}
-        </span>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={currentPage === totalPages}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:py-1.5"
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export function DataTable<T>({
   title,
   rows,
@@ -89,7 +43,6 @@ export function DataTable<T>({
     [columns]
   );
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
   const [showColumns, setShowColumns] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultVisible);
 
@@ -112,14 +65,10 @@ export function DataTable<T>({
     );
   }, [columns, rows, search]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [search]);
-
   const visible = columns.filter((column) => visibleColumns.includes(column.id));
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paginatedRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const { paginatedItems, page, setPage, pageSize, setPageSize, totalPages, totalRows } = usePagination(filteredRows, {
+    resetDeps: [search]
+  });
 
   function toggleColumn(columnId: string) {
     setVisibleColumns((current) => {
@@ -135,28 +84,13 @@ export function DataTable<T>({
     });
   }
 
-  const paginationProps = {
-    currentPage,
-    totalPages,
-    totalRows: filteredRows.length,
-    pageSize: PAGE_SIZE,
-    onPrev: () => setPage((current) => Math.max(1, current - 1)),
-    onNext: () => setPage((current) => Math.min(totalPages, current + 1))
-  };
-
   return (
     <div className="space-y-4">
       <div className="card p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
             <div className={cn("relative w-full", showColumnToggle ? "sm:max-w-md" : "")}>
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder={searchPlaceholder}
-                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-slate-400"
-              />
+              <TableSearch value={search} onChange={setSearch} placeholder={searchPlaceholder} variant="light" className="max-w-none" />
             </div>
             {showColumnToggle ? (
               <div className="relative shrink-0">
@@ -201,7 +135,7 @@ export function DataTable<T>({
       ) : (
         <>
           <div className="space-y-3 md:hidden">
-            {paginatedRows.map((row) => (
+            {paginatedItems.map((row) => (
               <article
                 key={getRowId(row)}
                 className={cn("card p-4", onRowClick ? "cursor-pointer active:bg-slate-50" : "")}
@@ -227,8 +161,16 @@ export function DataTable<T>({
                 ))}
               </article>
             ))}
-            <div className="card overflow-hidden">
-              <PaginationBar {...paginationProps} />
+            <div className="card overflow-hidden px-4">
+              <TablePagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalRows={totalRows}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                variant="light"
+              />
             </div>
           </div>
 
@@ -251,7 +193,7 @@ export function DataTable<T>({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {paginatedRows.map((row) => (
+                  {paginatedItems.map((row) => (
                     <tr
                       key={getRowId(row)}
                       className={cn("transition hover:bg-slate-50", onRowClick ? "cursor-pointer" : "")}
@@ -267,7 +209,16 @@ export function DataTable<T>({
                 </tbody>
               </table>
             </div>
-            <PaginationBar {...paginationProps} />
+            <TablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalRows={totalRows}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              variant="light"
+              className="px-4"
+            />
           </div>
         </>
       )}

@@ -5,6 +5,7 @@ type BlogRecord = AirtableRecord<BlogPipelineFields>;
 
 const DATA_FIELDS: Array<keyof BlogPipelineFields | string> = [
   "Blog Title",
+  "Blog Status",
   "URL Slug",
   "AI Draft",
   "Human Edited Draft",
