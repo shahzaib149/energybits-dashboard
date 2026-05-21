@@ -1,3 +1,5 @@
+"use client";
+
 import type { ProjectPrompt } from "@/lib/cairrot/project-dashboard";
 import { COPY } from "@/lib/copy";
 import { StatusBadge } from "@/components/ui/StatusBadge";

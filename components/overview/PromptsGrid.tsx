@@ -1,3 +1,5 @@
+"use client";
+
 import type { PromptResult } from "@/lib/cairrot/types";
 import { COPY } from "@/lib/copy";
 import { EmptyState } from "@/components/ui/EmptyState";
