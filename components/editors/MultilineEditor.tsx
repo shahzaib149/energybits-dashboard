@@ -1,81 +1,78 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
-import { SaveIndicator } from "@/components/SaveIndicator";
+import { KeyboardEvent, useEffect, useState } from "react";
+import { SaveIndicator, type EditorTheme } from "@/components/SaveIndicator";
 import { SaveStatus } from "@/hooks/useEditableRecord";
-import { EditorSheet } from "@/components/editors/EditorSheet";
+import { cn } from "@/lib/utils";
 
 export function MultilineEditor({
   value,
   disabled,
   status,
   onSave,
-  displayClassName
+  displayClassName,
+  theme = "light"
 }: {
   value?: string;
   disabled?: boolean;
   status: SaveStatus;
   onSave: (value: string) => Promise<any> | void;
   displayClassName?: string;
+  theme?: EditorTheme;
 }) {
-  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
+  const isDark = theme === "dark";
 
   useEffect(() => setDraft(value ?? ""), [value]);
 
-  return (
-    <>
-      <SaveIndicator status={status} editable={!disabled}>
-        <button type="button" disabled={disabled} onClick={() => setOpen(true)} className="flex w-full items-start justify-between gap-2 rounded-lg px-2 py-1.5 text-left">
-          <span className={displayClassName ?? "line-clamp-2 text-sm text-slate-700"}>{value || "—"}</span>
-          {!disabled ? <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /> : null}
-        </button>
-      </SaveIndicator>
-      <EditorSheet
-        open={open}
-        title="Edit text"
-        onClose={() => {
-          setDraft(value ?? "");
-          setOpen(false);
-        }}
-        footer={
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">{draft.length} characters</span>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setDraft(value ?? "");
-                  setOpen(false);
-                }}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  setOpen(false);
-                  if (draft !== (value ?? "")) {
-                    await onSave(draft);
-                  }
-                }}
-                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        }
-      >
+  async function commit() {
+    setEditing(false);
+    if (draft !== (value ?? "")) {
+      await onSave(draft);
+    }
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Escape") {
+      setDraft(value ?? "");
+      setEditing(false);
+    }
+  }
+
+  const textareaClass = isDark
+    ? "w-full min-h-24 resize-y rounded-lg border border-border bg-surfaceElevated px-3 py-2 text-sm leading-relaxed text-textPrimary outline-none focus:border-brand/50"
+    : "field-textarea min-h-24";
+
+  const displayClass = isDark
+    ? "line-clamp-3 whitespace-pre-wrap text-sm text-textPrimary"
+    : "line-clamp-2 text-sm text-slate-700";
+
+  if (editing && !disabled) {
+    return (
+      <SaveIndicator status={status} editable={false} theme={theme}>
         <textarea
           autoFocus
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          className="field-textarea min-h-64"
+          onBlur={() => void commit()}
+          onKeyDown={onKeyDown}
+          className={textareaClass}
         />
-      </EditorSheet>
-    </>
+      </SaveIndicator>
+    );
+  }
+
+  return (
+    <SaveIndicator status={status} editable={!disabled} theme={theme}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setEditing(true)}
+        className={cn("w-full rounded-lg px-2 py-1.5 text-left", disabled ? "cursor-default" : "hover:bg-surfaceElevated/60")}
+      >
+        <span className={displayClassName ?? displayClass}>{value || "—"}</span>
+      </button>
+    </SaveIndicator>
   );
 }

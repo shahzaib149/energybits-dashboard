@@ -11,6 +11,7 @@ import type {
   CriteoDailyRow
 } from "@/lib/criteo-ads/types";
 import type { VibeAggregatedRow, VibeAnalyticsRow } from "@/lib/vibe-ads/types";
+import type { KlaviyoAnalyticsRow, KlaviyoMetricAggregateRow } from "@/lib/klaviyo/types";
 import type { BlogPipelineRow } from "@/lib/airtable/blog-pipeline";
 import { exportFilenameSuffix } from "@/lib/date-range/format";
 import type { DateRange } from "@/lib/date-range/types";
@@ -181,6 +182,27 @@ export const vibeDetailColumns: CSVColumn<VibeAnalyticsRow>[] = [
   { key: "cpm", label: "CPM", format: (v) => Number(v).toFixed(2) },
   { key: "viewThroughRatePct", label: "VTR %", format: (v) => Number(v).toFixed(2) },
   { key: "roas", label: "ROAS", format: (v) => Number(v).toFixed(2) }
+];
+
+export function klaviyoFilename(slug: string, dateRange: DateRange): string {
+  return `energybits-${slug}-${exportFilenameSuffix(dateRange)}`;
+}
+
+export const klaviyoMetricColumns: CSVColumn<KlaviyoMetricAggregateRow>[] = [
+  { key: "metricName", label: "Metric" },
+  { key: "counts", label: "Events" },
+  { key: "uniqueCounts", label: "Unique Contacts" },
+  { key: "orderSumValue", label: "Order Value", format: (v) => Number(v).toFixed(2) },
+  { key: "recordCount", label: "Rows" }
+];
+
+export const klaviyoDetailColumns: CSVColumn<KlaviyoAnalyticsRow>[] = [
+  { key: "date", label: "Date" },
+  { key: "metricName", label: "Metric" },
+  { key: "metricId", label: "Metric ID" },
+  { key: "counts", label: "Events" },
+  { key: "uniqueCounts", label: "Unique Contacts" },
+  { key: "orderSumValue", label: "Order Value", format: (v) => Number(v).toFixed(2) }
 ];
 
 export const blogPipelineColumns: CSVColumn<BlogPipelineRow>[] = [

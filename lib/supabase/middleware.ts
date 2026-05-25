@@ -3,7 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { normalizeRole, permissions } from "@/lib/auth/permissions";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/config";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/confirm", "/account-not-provisioned", "/api/auth/seed"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/auth/callback",
+  "/auth/confirm",
+  "/auth/reset-password",
+  "/account-not-provisioned",
+  "/api/auth/seed"
+];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
@@ -78,6 +85,10 @@ export async function updateSession(request: NextRequest) {
     url.pathname = profileRole ? "/overview" : "/account-not-provisioned";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  if (user && pathname === "/auth/reset-password") {
+    return supabaseResponse;
   }
 
   if (user && pathname === "/") {

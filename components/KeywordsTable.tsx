@@ -28,26 +28,26 @@ export function KeywordsTable({ records: initialRecords, schema }: { records: Ke
           value={row.fields.Keyword}
           status={getFieldStatus(row.id, "Keyword")}
           onSave={(value) => updateField(row.id, "Keyword", value)}
+          theme="dark"
         />
       ),
       getSearchValue: (row) => asText(row.fields.Keyword),
-      className: "w-1/2 min-w-[260px] text-center"
+      className: "min-w-[260px] text-left"
     },
     {
       id: "searchVolume",
       label: "Search Volume",
       render: (row) => (
-        <div className="flex justify-center">
-          <EditableCell
-            definition={definitionMap["Search Volume"]}
-            value={row.fields["Search Volume"]}
-            status={getFieldStatus(row.id, "Search Volume")}
-            onSave={(value) => updateField(row.id, "Search Volume", value)}
-          />
-        </div>
+        <EditableCell
+          definition={definitionMap["Search Volume"]}
+          value={row.fields["Search Volume"]}
+          status={getFieldStatus(row.id, "Search Volume")}
+          onSave={(value) => updateField(row.id, "Search Volume", value)}
+          theme="dark"
+        />
       ),
       getSearchValue: (row) => asText(row.fields["Search Volume"]),
-      className: "w-1/2 min-w-[180px] text-center"
+      className: "min-w-[180px] text-left tabular-nums"
     }
   ];
 
@@ -60,11 +60,12 @@ export function KeywordsTable({ records: initialRecords, schema }: { records: Ke
         getRowId={(row) => row.id}
         searchPlaceholder="Search keywords..."
         showColumnToggle={false}
+        variant="dark"
         toolbar={
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white"
+            className="rounded-lg border border-brand/40 bg-brand/10 px-4 py-2.5 text-sm font-medium text-brand transition hover:bg-brand/20"
           >
             + New Keyword
           </button>

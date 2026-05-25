@@ -30,6 +30,10 @@ export default function AuthConfirmPage() {
           router.replace("/login?error=auth");
           return;
         }
+        if (type === "recovery") {
+          router.replace("/auth/reset-password");
+          return;
+        }
         router.replace("/overview");
         return;
       }
@@ -40,6 +44,7 @@ export default function AuthConfirmPage() {
         const params = new URLSearchParams(hash);
         const accessToken = params.get("access_token");
         const refreshToken = params.get("refresh_token");
+        const type = params.get("type");
         if (accessToken && refreshToken) {
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -48,6 +53,10 @@ export default function AuthConfirmPage() {
           if (error) {
             setMessage("Sign-in link expired or invalid. Request a new invite.");
             router.replace("/login?error=auth");
+            return;
+          }
+          if (type === "recovery") {
+            router.replace("/auth/reset-password");
             return;
           }
           router.replace("/overview");

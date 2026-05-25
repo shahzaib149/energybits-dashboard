@@ -21,6 +21,10 @@ export function vibeAdsDateInRangeFormula(range: DateRange): string {
   return dateFieldInRangeFormula("impression_date", range);
 }
 
+export function klaviyoDateInRangeFormula(range: DateRange): string {
+  return dateFieldInRangeFormula("Date", range);
+}
+
 export function combineFormulas(...parts: Array<string | undefined>): string | undefined {
   const valid = parts.filter((p): p is string => Boolean(p));
   if (valid.length === 0) return undefined;

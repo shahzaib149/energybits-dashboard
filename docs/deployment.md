@@ -40,11 +40,31 @@ Production runs on [Vercel](https://vercel.com). All secrets must be configured 
 | `AIRTABLE_GOOGLE_ADS_CREATIVES_TABLE_ID` | Server only |
 | `AIRTABLE_GOOGLE_ADS_KEYWORDS_TABLE_ID` | Server only |
 
+## Airtable — Klaviyo base
+
+| Variable | Scope |
+|----------|-------|
+| `AIRTABLE_KLAVIYO_BASE_ID` | Server only |
+| `AIRTABLE_KLAVIYO_ANALYTICS_TABLE_ID` | Server only |
+
+See [Klaviyo Analytics](./features/klaviyo-analytics.md).
+
 ## Optional
 
 | Variable | Scope | Notes |
 |----------|-------|-------|
-| `NEXT_PUBLIC_SITE_URL` | All | Production URL for magic-link redirects (e.g. `https://your-app.vercel.app`) |
+| `NEXT_PUBLIC_SITE_URL` | All | Production URL for auth redirects (magic links, password reset) |
+
+## Supabase auth redirect URLs
+
+In **Supabase → Authentication → URL Configuration**, add these **Redirect URLs**:
+
+- `http://localhost:3000/auth/reset-password`
+- `http://localhost:3000/auth/callback`
+- `http://localhost:3000/auth/confirm`
+- Production equivalents using your Vercel domain
+
+Set **Site URL** to your primary app URL. Password reset will not work if these URLs are missing. See [Password reset](./features/password-reset.md).
 
 ## Local setup
 
@@ -75,5 +95,6 @@ npm run auth:invite-users
 - [ ] All variables above set in Vercel for Production (and Preview if needed)
 - [ ] Migration `003_profiles_roles_audit_log.sql` applied in Supabase
 - [ ] Test users disabled; real users invited
-- [ ] `NEXT_PUBLIC_SITE_URL` matches production domain for magic links
+- [ ] `NEXT_PUBLIC_SITE_URL` matches production domain for auth redirects
+- [ ] Supabase redirect URLs include `/auth/reset-password`, `/auth/callback`, `/auth/confirm`
 - [ ] Production build passes: `npm run build`

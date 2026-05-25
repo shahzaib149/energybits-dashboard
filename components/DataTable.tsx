@@ -2,7 +2,8 @@
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { SlidersHorizontal, EyeOff } from "lucide-react";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState as LightEmptyState } from "@/components/EmptyState";
+import { EmptyState as DarkEmptyState } from "@/components/ui/EmptyState";
 import { TablePagination } from "@/components/ui/TablePagination";
 import { TableSearch } from "@/components/ui/TableSearch";
 import { usePagination } from "@/hooks/usePagination";
@@ -26,6 +27,7 @@ interface DataTableProps<T> {
   toolbar?: ReactNode;
   onRowClick?: (row: T) => void;
   showColumnToggle?: boolean;
+  variant?: "light" | "dark";
 }
 
 export function DataTable<T>({
@@ -36,8 +38,10 @@ export function DataTable<T>({
   searchPlaceholder = "Search records...",
   toolbar,
   onRowClick,
-  showColumnToggle = true
+  showColumnToggle = true,
+  variant = "light"
 }: DataTableProps<T>) {
+  const isDark = variant === "dark";
   const defaultVisible = useMemo(
     () => columns.filter((column) => column.defaultVisible !== false).map((column) => column.id),
     [columns]
@@ -84,38 +88,77 @@ export function DataTable<T>({
     });
   }
 
+  const desktopTableClass = isDark
+    ? "hidden overflow-hidden rounded-xl border border-border bg-surface shadow-sm md:block"
+    : "table-shell hidden md:block";
+
+  const toolbarShellClass = isDark
+    ? "rounded-xl border border-border bg-surface p-4"
+    : "card p-4";
+
+  const mobileCardClass = isDark
+    ? cn("rounded-xl border border-border bg-surface p-4", onRowClick ? "cursor-pointer active:bg-surfaceElevated" : "")
+    : cn("card p-4", onRowClick ? "cursor-pointer active:bg-slate-50" : "");
+
   return (
     <div className="space-y-4">
-      <div className="card p-4">
+      <div className={toolbarShellClass}>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
             <div className={cn("relative w-full", showColumnToggle ? "sm:max-w-md" : "")}>
-              <TableSearch value={search} onChange={setSearch} placeholder={searchPlaceholder} variant="light" className="max-w-none" />
+              <TableSearch
+                value={search}
+                onChange={setSearch}
+                placeholder={searchPlaceholder}
+                variant={variant}
+                className="max-w-none"
+              />
             </div>
             {showColumnToggle ? (
               <div className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowColumns((current) => !current)}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 sm:w-auto"
+                  className={cn(
+                    "inline-flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition sm:w-auto",
+                    isDark
+                      ? "border-border bg-surfaceElevated text-textSecondary hover:border-brand/40 hover:text-textPrimary"
+                      : "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                  )}
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                   Columns
                 </button>
                 {showColumns ? (
-                  <div className="absolute left-0 right-0 z-20 mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-soft sm:left-auto sm:right-0 sm:w-60">
-                    <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                  <div
+                    className={cn(
+                      "absolute left-0 right-0 z-20 mt-2 rounded-xl border p-3 shadow-soft sm:left-auto sm:right-0 sm:w-60",
+                      isDark ? "border-border bg-surfaceElevated" : "border-slate-200 bg-white"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em]",
+                        isDark ? "text-textMuted" : "text-slate-400"
+                      )}
+                    >
                       <EyeOff className="h-3.5 w-3.5" />
                       Visibility
                     </div>
                     <div className="space-y-2">
                       {columns.map((column) => (
-                        <label key={column.id} className="flex items-center gap-3 text-sm text-slate-600">
+                        <label
+                          key={column.id}
+                          className={cn("flex items-center gap-3 text-sm", isDark ? "text-textSecondary" : "text-slate-600")}
+                        >
                           <input
                             type="checkbox"
                             checked={visibleColumns.includes(column.id)}
                             onChange={() => toggleColumn(column.id)}
-                            className="rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                            className={cn(
+                              "rounded focus:ring-brand/50",
+                              isDark ? "border-border bg-surface text-brand" : "border-slate-300 text-slate-900 focus:ring-slate-400"
+                            )}
                           />
                           {column.label}
                         </label>
@@ -131,14 +174,18 @@ export function DataTable<T>({
       </div>
 
       {filteredRows.length === 0 ? (
-        <EmptyState title={`No ${title.toLowerCase()} matched`} />
+        isDark ? (
+          <DarkEmptyState title={`No ${title.toLowerCase()} matched`} description="Try a different search term." />
+        ) : (
+          <LightEmptyState title={`No ${title.toLowerCase()} matched`} />
+        )
       ) : (
         <>
           <div className="space-y-3 md:hidden">
             {paginatedItems.map((row) => (
               <article
                 key={getRowId(row)}
-                className={cn("card p-4", onRowClick ? "cursor-pointer active:bg-slate-50" : "")}
+                className={mobileCardClass}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 onKeyDown={
                   onRowClick
@@ -154,14 +201,26 @@ export function DataTable<T>({
                 tabIndex={onRowClick ? 0 : undefined}
               >
                 {visible.map((column, index) => (
-                  <div key={column.id} className={index === 0 ? "" : "mt-3 border-t border-slate-100 pt-3"}>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{column.label}</p>
-                    <div className="mt-1 text-sm text-slate-700">{column.render(row)}</div>
+                  <div
+                    key={column.id}
+                    className={cn(index === 0 ? "" : "mt-3 border-t pt-3", isDark ? "border-border" : "border-slate-100")}
+                  >
+                    <p
+                      className={cn(
+                        "text-[11px] font-semibold uppercase tracking-[0.16em]",
+                        isDark ? "text-textMuted" : "text-slate-400"
+                      )}
+                    >
+                      {column.label}
+                    </p>
+                    <div className={cn("mt-1 text-sm", isDark ? "text-textPrimary" : "text-slate-700")}>
+                      {column.render(row)}
+                    </div>
                   </div>
                 ))}
               </article>
             ))}
-            <div className="card overflow-hidden px-4">
+            <div className={cn(isDark ? "overflow-hidden rounded-xl border border-border bg-surface px-4" : "card overflow-hidden px-4")}>
               <TablePagination
                 currentPage={page}
                 totalPages={totalPages}
@@ -169,21 +228,22 @@ export function DataTable<T>({
                 pageSize={pageSize}
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
-                variant="light"
+                variant={variant}
               />
             </div>
           </div>
 
-          <div className="table-shell hidden md:block">
+          <div className={desktopTableClass}>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-100">
-                <thead className="bg-slate-50">
+              <table className={cn("min-w-full divide-y", isDark ? "divide-border" : "divide-slate-100")}>
+                <thead className={isDark ? "bg-surfaceElevated" : "bg-slate-50"}>
                   <tr>
                     {visible.map((column) => (
                       <th
                         key={column.id}
                         className={cn(
-                          "whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500",
+                          "whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em]",
+                          isDark ? "text-textMuted" : "text-slate-500",
                           column.className
                         )}
                       >
@@ -192,15 +252,26 @@ export function DataTable<T>({
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
+                <tbody className={cn("divide-y", isDark ? "divide-border bg-surface" : "divide-slate-100 bg-white")}>
                   {paginatedItems.map((row) => (
                     <tr
                       key={getRowId(row)}
-                      className={cn("transition hover:bg-slate-50", onRowClick ? "cursor-pointer" : "")}
+                      className={cn(
+                        "transition",
+                        isDark ? "hover:bg-surfaceElevated" : "hover:bg-slate-50",
+                        onRowClick ? "cursor-pointer" : ""
+                      )}
                       onClick={onRowClick ? () => onRowClick(row) : undefined}
                     >
                       {visible.map((column) => (
-                        <td key={column.id} className={cn("px-4 py-3 align-top text-sm text-slate-700", column.className)}>
+                        <td
+                          key={column.id}
+                          className={cn(
+                            "px-4 py-3 align-top text-sm",
+                            isDark ? "text-textPrimary" : "text-slate-700",
+                            column.className
+                          )}
+                        >
                           {column.render(row)}
                         </td>
                       ))}
@@ -216,7 +287,7 @@ export function DataTable<T>({
               pageSize={pageSize}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
-              variant="light"
+              variant={variant}
               className="px-4"
             />
           </div>

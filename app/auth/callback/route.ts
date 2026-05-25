@@ -81,12 +81,19 @@ export async function GET(request: NextRequest) {
   await logAuditEvent({
     userId,
     userEmail: profile?.email ?? userEmail,
-    action: "auth.login",
-    metadata: { method: tokenHash ? "invite_otp" : "magic_link" },
+    action: type === "recovery" || safeNext === "/auth/reset-password" ? "auth.password_reset_link" : "auth.login",
+    metadata: {
+      method: type === "recovery" ? "recovery_otp" : tokenHash ? "invite_otp" : "magic_link"
+    },
     ipAddress,
     userAgent
   });
 
-  const destination = profile ? safeNext : "/account-not-provisioned";
+  const destination =
+    type === "recovery" || safeNext === "/auth/reset-password"
+      ? "/auth/reset-password"
+      : profile
+        ? safeNext
+        : "/account-not-provisioned";
   return redirectWithCookies(`${origin}${destination}`, pendingCookies);
 }

@@ -17,8 +17,8 @@ async function KeywordsContent() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Recommended Keywords</h1>
-        <span className="rounded-full bg-slate-900 px-3 py-1 text-sm font-medium text-white">{formatNumber(records.length)}</span>
+        <h1 className="text-3xl font-semibold tracking-tight text-textPrimary">Recommended Keywords</h1>
+        <span className="rounded-full bg-surfaceElevated px-3 py-1 text-sm font-medium text-textPrimary">{formatNumber(records.length)}</span>
       </div>
       <KeywordsTable records={sorted as AirtableRecord<KeywordsFields>[]} schema={schema} />
     </div>
@@ -27,8 +27,10 @@ async function KeywordsContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<TableSkeleton />}>
-      <KeywordsContent />
-    </Suspense>
+    <div className="overview-theme mx-auto w-full max-w-[1400px] p-3 sm:p-6 lg:p-8">
+      <Suspense fallback={<TableSkeleton />}>
+        <KeywordsContent />
+      </Suspense>
+    </div>
   );
 }

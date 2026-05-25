@@ -12,6 +12,7 @@ import {
   Megaphone,
   Menu,
   MessageSquareQuote,
+  Mail,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -31,7 +32,8 @@ const analyticsItems = [
   { href: "/geo-analytics", label: "GEO Analytics", icon: Globe2 },
   { href: "/google-ads-analytics", label: "Google Ads", icon: Megaphone },
   { href: "/criteo-ads-analytics", label: "Criteo Ads", icon: Target },
-  { href: "/vibe-ads-analytics", label: "Vibe.co", icon: Tv }
+  { href: "/vibe-ads-analytics", label: "Vibe.co", icon: Tv },
+  { href: "/klaviyo-analytics", label: "Klaviyo", icon: Mail }
 ];
 
 const workflowItems = [

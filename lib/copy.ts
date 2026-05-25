@@ -10,7 +10,31 @@ export const COPY = {
       submitLabel: "Sign in to dashboard",
       welcomeTitle: "Welcome back",
       welcomeSubtitle: "Enter your email and password to continue.",
-      authCallbackError: "Sign-in failed. Try again or use the link from your invite email."
+      authCallbackError: "Sign-in failed. Try again or use the link from your invite email.",
+      forgotPasswordLink: "Forgot password?",
+      backToSignIn: "Back to sign in"
+    },
+    forgotPassword: {
+      title: "Reset your password",
+      subtitle: "Enter your email and we will send you a link to choose a new password.",
+      emailLabel: "Email",
+      submitLabel: "Send reset link",
+      success: "Check your email for a password reset link. It may take a minute to arrive.",
+      submitFailed: "Could not send reset email. Try again or contact your administrator.",
+      linkExpired: "That reset link expired or is invalid. Enter your email to request a new one."
+    },
+    resetPassword: {
+      title: "Choose a new password",
+      subtitle: "Enter a new password for your account.",
+      passwordLabel: "New password",
+      confirmLabel: "Confirm password",
+      submitLabel: "Update password",
+      submitFailed: "Could not update password. Try again or request a new reset link.",
+      success: "Password updated. You can sign in with your new password.",
+      mismatch: "Passwords do not match.",
+      tooShort: "Password must be at least 8 characters.",
+      missingSession: "This reset link is invalid or expired. Request a new one.",
+      requestNewLink: "Request a new reset link"
     },
     notProvisioned: {
       title: "Account not provisioned",
@@ -740,6 +764,58 @@ export const COPY = {
     creatives: { table: { title: "Creative performance", subtitle: "Aggregated by creative" } },
     detail: { table: { title: "Row-level analytics", subtitle: "All impression rows for the selected range" } },
     topRoas: { title: "Best ROAS", subtitle: "Top performers by return on spend" }
+  },
+  klaviyo: {
+    meta: {
+      title: "Klaviyo Analytics · ENERGYbits",
+      description: "Email marketing campaign engagement and revenue metrics from Klaviyo."
+    },
+    header: {
+      eyebrow: "Email Marketing Performance",
+      title: "Klaviyo Analytics",
+      subtitle: "Track email engagement, orders, and revenue across Klaviyo campaign metrics",
+      lastUpdated: "Latest date"
+    },
+    notConfigured: {
+      title: "Klaviyo Analytics not configured",
+      description: "Add Klaviyo Airtable base and table IDs to .env.local. See .env.example."
+    },
+    loadError: "Unable to load Klaviyo Analytics data.",
+    tabs: {
+      overview: "Overview",
+      metrics: "Metrics",
+      records: "Records"
+    },
+    metrics: {
+      totalEvents: {
+        label: "Total Events",
+        tooltip: "Sum of all event counts in the selected range.",
+        description: "All tracked events"
+      },
+      uniqueContacts: {
+        label: "Unique Contacts",
+        tooltip: "Sum of unique contact counts across metrics and dates.",
+        description: "Reach (aggregated)"
+      },
+      orderRevenue: {
+        label: "Order Revenue",
+        tooltip: "Total order value attributed to Klaviyo metrics.",
+        description: "Revenue from orders"
+      },
+      metricTypes: {
+        label: "Metric Types",
+        tooltip: "Number of distinct Klaviyo metric types in the range.",
+        description: "Distinct metrics"
+      }
+    },
+    overview: {
+      eventsTrend: { title: "Daily event trend", subtitle: "Total events and unique contacts over time" },
+      topMetrics: { title: "Top metrics by events", subtitle: "Highest-volume Klaviyo metrics in the range" },
+      metricBreakdown: { title: "Events by metric", subtitle: "Share of total events across metric types" },
+      revenueTrend: { title: "Daily order revenue", subtitle: "Order value over time" }
+    },
+    metricsTab: { table: { title: "Metric performance", subtitle: "Aggregated totals by metric name" } },
+    records: { table: { title: "Row-level metrics", subtitle: "All Klaviyo analytics rows for the selected range" } }
   },
   dateRange: {
     label: "Date range",

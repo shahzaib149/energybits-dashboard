@@ -13,30 +13,50 @@ import { UrlEditor } from "@/components/editors/UrlEditor";
 import { SaveStatus } from "@/hooks/useEditableRecord";
 import { EditableFieldDefinition } from "@/lib/types";
 import { asText, formatDate } from "@/lib/utils";
+import type { EditorTheme } from "@/components/SaveIndicator";
+
 export function EditableCell({
   definition,
   value,
   status,
   onSave,
-  displayContext
+  displayContext,
+  theme = "light"
 }: {
   definition?: EditableFieldDefinition;
   value: unknown;
   status: SaveStatus;
   onSave: (value: any) => Promise<any> | void;
   displayContext?: "priority" | "searchIntent" | "blogStatus" | "seoStatus" | "contentStatus" | "aeoStatus" | "platform" | "generic";
+  theme?: EditorTheme;
 }) {
   if (!definition) {
-    return <span>{asText(value as any) || "—"}</span>;
+    return <span className={theme === "dark" ? "text-textPrimary" : undefined}>{asText(value as any) || "—"}</span>;
   }
 
   const disabled = false;
 
   switch (definition.type) {
     case "singleLineText":
-      return <InlineTextEditor value={typeof value === "string" ? value : ""} disabled={disabled} status={status} onSave={onSave} />;
+      return (
+        <InlineTextEditor
+          value={typeof value === "string" ? value : ""}
+          disabled={disabled}
+          status={status}
+          onSave={onSave}
+          theme={theme}
+        />
+      );
     case "multilineText":
-      return <MultilineEditor value={typeof value === "string" ? value : ""} disabled={disabled} status={status} onSave={onSave} />;
+      return (
+        <MultilineEditor
+          value={typeof value === "string" ? value : ""}
+          disabled={disabled}
+          status={status}
+          onSave={onSave}
+          theme={theme}
+        />
+      );
     case "singleSelect":
       return (
         <SelectEditor
@@ -46,6 +66,7 @@ export function EditableCell({
           options={definition.options ?? []}
           context={displayContext}
           onSave={onSave}
+          theme={theme}
         />
       );
     case "multipleSelects":
@@ -66,6 +87,7 @@ export function EditableCell({
           precision={definition.precision ?? 0}
           status={status}
           onSave={onSave}
+          theme={theme}
         />
       );
     case "date":

@@ -28,10 +28,11 @@ export function AEOPromptsTable({ records: initialRecords, schema }: { records: 
           value={row.fields.Prompt}
           status={getFieldStatus(row.id, "Prompt")}
           onSave={(value) => updateField(row.id, "Prompt", value)}
+          theme="dark"
         />
       ),
       getSearchValue: (row) => asText(row.fields.Prompt),
-      className: "w-1/2 min-w-[320px] text-center"
+      className: "min-w-[320px] text-left"
     },
     {
       id: "contentType",
@@ -42,10 +43,11 @@ export function AEOPromptsTable({ records: initialRecords, schema }: { records: 
           value={row.fields["Suggested Content Type"]}
           status={getFieldStatus(row.id, "Suggested Content Type")}
           onSave={(value) => updateField(row.id, "Suggested Content Type", value)}
+          theme="dark"
         />
       ),
       getSearchValue: (row) => asText(row.fields["Suggested Content Type"]),
-      className: "w-1/2 min-w-[240px] text-center"
+      className: "min-w-[240px] text-left"
     }
   ];
 
@@ -58,8 +60,13 @@ export function AEOPromptsTable({ records: initialRecords, schema }: { records: 
         getRowId={(row) => row.id}
         searchPlaceholder="Search prompts..."
         showColumnToggle={false}
+        variant="dark"
         toolbar={
-          <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white">
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="rounded-lg border border-brand/40 bg-brand/10 px-4 py-2.5 text-sm font-medium text-brand transition hover:bg-brand/20"
+          >
             + New Prompt
           </button>
         }

@@ -4,6 +4,8 @@ export type AuditAction =
   | "auth.login"
   | "auth.logout"
   | "auth.login_failed"
+  | "auth.password_reset_link"
+  | "auth.password_reset"
   | "blog.topic_submitted"
   | "blog.topic_edited"
   | "blog.topic_deleted"

@@ -32,6 +32,8 @@ Run `supabase/migrations/003_profiles_roles_audit_log.sql` in Supabase SQL Edito
 | `auth.login` | Login server action success, auth callback (magic link) |
 | `auth.login_failed` | Login server action failure |
 | `auth.logout` | Sign-out route |
+| `auth.password_reset_link` | User opened a valid recovery link (callback / OTP) |
+| `auth.password_reset` | User saved a new password after recovery |
 | `blog.topic_submitted` | Airtable create route when blog title present |
 
 Placeholders ready for Session 2+: `blog.topic_edited`, `blog.topic_deleted`, `gsc.status_changed`, `data.exported`, `user.invited`, `user.role_changed`.
@@ -39,4 +41,5 @@ Placeholders ready for Session 2+: `blog.topic_edited`, `blog.topic_deleted`, `g
 ## Related docs
 
 - [Deployment & env vars](../deployment.md)
+- [Password reset](./password-reset.md)
 - [Secrets audit May 2026](../SECRETS_AUDIT_2026-05.md)

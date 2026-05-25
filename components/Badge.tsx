@@ -45,6 +45,7 @@ const contextMaps: Record<BadgeContext, Record<string, string>> = {
     Published: "bg-teal-100 text-teal-700"
   },
   aeoStatus: {
+    Opportunity: "bg-violet-100 text-violet-700",
     Tracking: "bg-blue-100 text-blue-700",
     Improved: "bg-emerald-100 text-emerald-700",
     Declined: "bg-rose-100 text-rose-700"
@@ -59,7 +60,19 @@ const contextMaps: Record<BadgeContext, Record<string, string>> = {
   generic: {}
 };
 
-export function getBadgeClasses(value: string, context: BadgeContext = "generic") {
+export function getBadgeClasses(value: string, context: BadgeContext = "generic", theme: "light" | "dark" = "light") {
+  if (theme === "dark") {
+    return (
+      darkContextMaps[context][value] ??
+      {
+        Published: "border border-brand/30 bg-brand/10 text-brand",
+        "Needs Review": "border border-warning/30 bg-warning/10 text-warning",
+        Declined: "border border-competitor/30 bg-competitor/10 text-competitor"
+      }[value] ??
+      "border border-border bg-surfaceElevated text-textSecondary"
+    );
+  }
+
   return (
     contextMaps[context][value] ??
     {
@@ -71,22 +84,48 @@ export function getBadgeClasses(value: string, context: BadgeContext = "generic"
   );
 }
 
+const darkContextMaps: Record<BadgeContext, Record<string, string>> = {
+  priority: {
+    High: "border border-warning/30 bg-warning/10 text-warning",
+    Medium: "border border-brand/30 bg-brand/10 text-brand",
+    Low: "border border-border bg-surfaceElevated text-textMuted"
+  },
+  searchIntent: {
+    Informational: "border border-neutral/30 bg-neutral/10 text-neutral",
+    Commercial: "border border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+    Transactional: "border border-brand/30 bg-brand/10 text-brand",
+    Navigational: "border border-border bg-surfaceElevated text-textSecondary"
+  },
+  blogStatus: {},
+  seoStatus: {},
+  contentStatus: {},
+  aeoStatus: {
+    Opportunity: "border border-violet-500/30 bg-violet-500/10 text-violet-300",
+    Tracking: "border border-neutral/30 bg-neutral/10 text-neutral",
+    Improved: "border border-brand/30 bg-brand/10 text-brand",
+    Declined: "border border-competitor/30 bg-competitor/10 text-competitor"
+  },
+  platform: {},
+  generic: {}
+};
+
 interface BadgeProps {
   value?: string | null;
   context?: BadgeContext;
   className?: string;
+  theme?: "light" | "dark";
 }
 
-export function Badge({ value, context = "generic", className }: BadgeProps) {
+export function Badge({ value, context = "generic", className, theme = "light" }: BadgeProps) {
   if (!value) {
-    return <span className="text-sm text-slate-400">—</span>;
+    return <span className={cn("text-sm", theme === "dark" ? "text-textMuted" : "text-slate-400")}>—</span>;
   }
 
   return (
     <span
       className={cn(
         "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-        getBadgeClasses(value, context),
+        getBadgeClasses(value, context, theme),
         className
       )}
     >

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2, Lock, Mail } from "lucide-react";
@@ -12,6 +13,7 @@ export function SignInForm() {
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") || "/overview";
   const authError = searchParams.get("error");
+  const resetSuccess = searchParams.get("reset") === "success";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,9 +64,14 @@ export function SignInForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium text-slate-200">
-          {copy.passwordLabel}
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="password" className="text-sm font-medium text-slate-200">
+            {copy.passwordLabel}
+          </label>
+          <Link href="/login/forgot-password" className="text-xs font-medium text-cyan-400 hover:text-cyan-300">
+            {copy.forgotPasswordLink}
+          </Link>
+        </div>
         <div className="relative">
           <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-400/80" />
           <input
@@ -82,6 +89,12 @@ export function SignInForm() {
       </div>
 
       <p className="text-xs leading-relaxed text-slate-500">{copy.helperText}</p>
+
+      {resetSuccess ? (
+        <p className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-100" role="status">
+          {COPY.auth.resetPassword.success}
+        </p>
+      ) : null}
 
       {error ? (
         <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">
