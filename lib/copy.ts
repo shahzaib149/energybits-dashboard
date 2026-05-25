@@ -765,6 +765,93 @@ export const COPY = {
     detail: { table: { title: "Row-level analytics", subtitle: "All impression rows for the selected range" } },
     topRoas: { title: "Best ROAS", subtitle: "Top performers by return on spend" }
   },
+  metaAnalytics: {
+    meta: {
+      title: "Meta Analytics · ENERGYbits",
+      description: "Facebook and Instagram advertising performance from Meta Ads."
+    },
+    header: {
+      eyebrow: "Paid Social Performance",
+      title: "Meta Analytics",
+      subtitle: "Campaign and ad-level performance across Facebook and Instagram advertising",
+      lastUpdated: "Latest date"
+    },
+    notConfigured: {
+      title: "Meta Analytics not configured",
+      description: "Add Meta Airtable base and table IDs to .env.local. See .env.example."
+    },
+    loadError: "Unable to load Meta Analytics data.",
+    tabs: {
+      overview: "Overview",
+      campaigns: "Campaigns",
+      ads: "Ads",
+      detail: "Ad Insights"
+    },
+    metrics: {
+      totalSpend: {
+        label: "Total Spend",
+        tooltip: "Total Meta ad spend in the selected date range.",
+        description: "Campaign spend"
+      },
+      impressions: {
+        label: "Impressions",
+        tooltip: "Total ad impressions served.",
+        description: "Ads served"
+      },
+      clicks: {
+        label: "Clicks",
+        tooltip: "Total clicks on your Meta ads.",
+        description: "Ad clicks"
+      },
+      reach: {
+        label: "Reach",
+        tooltip: "Unique people who saw your ads.",
+        description: "Unique reach"
+      },
+      ctr: {
+        label: "Avg CTR",
+        tooltip: "Click-through rate weighted by impressions.",
+        description: "Engagement rate"
+      },
+      cpc: {
+        label: "Avg CPC",
+        tooltip: "Average cost per click across campaigns.",
+        description: "Cost per click"
+      }
+    },
+    overview: {
+      spendTrend: {
+        title: "Daily spend trend",
+        subtitle: "Campaign spend over time in the selected range"
+      },
+      topCampaigns: {
+        title: "Top campaigns by spend",
+        subtitle: "Campaigns using the most budget"
+      },
+      spendBreakdown: {
+        title: "Spend distribution",
+        subtitle: "Share of budget across top campaigns"
+      }
+    },
+    campaigns: {
+      table: {
+        title: "Campaign performance",
+        subtitle: "Aggregated metrics by campaign for the selected date range"
+      }
+    },
+    ads: {
+      table: {
+        title: "Ad performance",
+        subtitle: "Aggregated metrics by individual ad"
+      }
+    },
+    detail: {
+      table: {
+        title: "Ad insights detail",
+        subtitle: "Granular ad-level rows from Facebook Ads API metrics"
+      }
+    }
+  },
   klaviyo: {
     meta: {
       title: "Klaviyo Analytics · ENERGYbits",

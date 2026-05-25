@@ -12,6 +12,7 @@ import type {
 } from "@/lib/criteo-ads/types";
 import type { VibeAggregatedRow, VibeAnalyticsRow } from "@/lib/vibe-ads/types";
 import type { KlaviyoAnalyticsRow, KlaviyoMetricAggregateRow } from "@/lib/klaviyo/types";
+import type { MetaAdInsightRow, MetaAggregatedRow } from "@/lib/meta-analytics/types";
 import type { BlogPipelineRow } from "@/lib/airtable/blog-pipeline";
 import { exportFilenameSuffix } from "@/lib/date-range/format";
 import type { DateRange } from "@/lib/date-range/types";
@@ -213,4 +214,48 @@ export const blogPipelineColumns: CSVColumn<BlogPipelineRow>[] = [
   { key: "primaryProduct", label: "Product" },
   { key: "funnelStage", label: "Funnel Stage" },
   { key: "notes", label: "Notes" }
+];
+
+export function metaFilename(slug: string, dateRange: DateRange): string {
+  return `energybits-meta-${slug}-${exportFilenameSuffix(dateRange)}`;
+}
+
+export const metaCampaignColumns: CSVColumn<MetaAggregatedRow>[] = [
+  { key: "label", label: "Campaign" },
+  { key: "spend", label: "Spend", format: (v) => Number(v).toFixed(2) },
+  { key: "impressions", label: "Impressions" },
+  { key: "clicks", label: "Clicks" },
+  { key: "reach", label: "Reach" },
+  { key: "ctrPct", label: "CTR %", format: (v) => Number(v).toFixed(2) },
+  { key: "cpc", label: "CPC", format: (v) => Number(v).toFixed(2) },
+  { key: "cpm", label: "CPM", format: (v) => Number(v).toFixed(2) },
+  { key: "frequency", label: "Frequency", format: (v) => Number(v).toFixed(2) }
+];
+
+export const metaAdColumns: CSVColumn<MetaAggregatedRow>[] = [
+  { key: "label", label: "Ad" },
+  { key: "spend", label: "Spend", format: (v) => Number(v).toFixed(2) },
+  { key: "impressions", label: "Impressions" },
+  { key: "clicks", label: "Clicks" },
+  { key: "reach", label: "Reach" },
+  { key: "ctrPct", label: "CTR %", format: (v) => Number(v).toFixed(2) },
+  { key: "cpc", label: "CPC", format: (v) => Number(v).toFixed(2) }
+];
+
+export const metaAdInsightColumns: CSVColumn<MetaAdInsightRow>[] = [
+  { key: "adName", label: "Ad Name" },
+  { key: "adId", label: "Ad ID" },
+  { key: "accountName", label: "Account" },
+  { key: "dateStart", label: "Date Start" },
+  { key: "dateStop", label: "Date Stop" },
+  { key: "spend", label: "Spend", format: (v) => Number(v).toFixed(2) },
+  { key: "impressions", label: "Impressions" },
+  { key: "clicks", label: "Clicks" },
+  { key: "reach", label: "Reach" },
+  { key: "ctrPct", label: "CTR %", format: (v) => Number(v).toFixed(2) },
+  { key: "cpc", label: "CPC", format: (v) => Number(v).toFixed(2) },
+  { key: "cpm", label: "CPM", format: (v) => Number(v).toFixed(2) },
+  { key: "frequency", label: "Frequency", format: (v) => Number(v).toFixed(2) },
+  { key: "conversionRateRanking", label: "Conversion Rate Ranking" },
+  { key: "actions", label: "Actions" }
 ];

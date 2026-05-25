@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  Share2,
   Target,
   Tv,
   X
@@ -31,6 +32,7 @@ const analyticsItems = [
   { href: "/aeo-analytics", label: "AEO Analytics", icon: Brain },
   { href: "/geo-analytics", label: "GEO Analytics", icon: Globe2 },
   { href: "/google-ads-analytics", label: "Google Ads", icon: Megaphone },
+  { href: "/meta-analytics", label: "Meta Analytics", icon: Share2 },
   { href: "/criteo-ads-analytics", label: "Criteo Ads", icon: Target },
   { href: "/vibe-ads-analytics", label: "Vibe.co", icon: Tv },
   { href: "/klaviyo-analytics", label: "Klaviyo", icon: Mail }
