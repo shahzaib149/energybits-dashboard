@@ -14,6 +14,15 @@ function truncate(value: string, max = 28) {
 
 export function OverviewTab({ rows }: { rows: KlaviyoAnalyticsRow[] }) {
   const copy = COPY.klaviyo.overview;
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-surface p-8 text-center">
+        <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
+      </div>
+    );
+  }
+
   const trend = aggregateByDay(rows).map((row) => ({
     ...row,
     label: formatDate(row.day)

@@ -14,6 +14,9 @@ export type AuditAction =
   | "gsc.status_changed"
   | "overview.action_dismissed"
   | "data.exported"
+  | "intelligence_report.downloaded"
+  | "intelligence_report.triggered"
+  | "intelligence_recommendations_triggered"
   | "user.invited"
   | "user.role_changed";
 

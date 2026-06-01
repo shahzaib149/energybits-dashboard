@@ -3,6 +3,8 @@ import { READONLY_FIELDS } from "@/lib/editing";
 import { getServerUser } from "@/lib/auth/getServerUser";
 import { permissions } from "@/lib/auth/permissions";
 import { logAuditEvent, getRequestContext } from "@/lib/audit/logger";
+import { getAirtableApiKey } from "@/lib/airtable/config/env";
+import { seoTableRecordUrl } from "@/lib/airtable";
 
 export async function POST(req: Request) {
   const user = await getServerUser();
@@ -27,17 +29,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const res = await fetch(
-    `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${encodeURIComponent(tableId)}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ fields: safeFields })
-    }
-  );
+  const url = await seoTableRecordUrl(tableId);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getAirtableApiKey()}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ fields: safeFields })
+  });
 
   if (!res.ok) {
     const error = await res.json();

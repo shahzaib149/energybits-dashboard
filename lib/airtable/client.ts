@@ -1,20 +1,16 @@
-import { getSEOAnalyticsEnv } from "@/lib/seo-analytics/env";
-import { tableRecordsPath } from "@/lib/airtable/endpoints";
-import { AirtableAPIError } from "@/lib/airtable/errors";
+import { AIRTABLE_BASES } from "@/lib/airtable/config/registry";
+import { AirtableBaseTableClient } from "@/lib/airtable/core/base-table-client";
 import {
   mapGA4PageRecord,
   mapGA4SourceRecord,
   mapSEOTrackingRecord
 } from "@/lib/airtable/map";
 import {
-  BLOG_PIPELINE_TABLE,
   mapBlogPipelineRecord,
   type BlogPipelineRow,
   type BlogStatus
 } from "@/lib/airtable/blog-pipeline";
 import type {
-  AirtableListResponse,
-  AirtableRecordRaw,
   ActionStatus,
   ChannelBreakdownRow,
   GA4PageRow,
@@ -24,99 +20,18 @@ import type {
 import type { DateRange } from "@/lib/date-range/types";
 import { combineFormulas, endDateInRangeFormula } from "@/lib/date-range/airtable-filter";
 
-const REVALIDATE_SECONDS = 300;
 const MAX_RECORDS = 1000;
-const REQUEST_TIMEOUT_MS = 30_000;
-
-type FetchOpts = {
-  filterByFormula?: string;
-  sort?: Array<{ field: string; direction?: "asc" | "desc" }>;
-  maxRecords?: number;
-  cacheTags?: string[];
-  noCache?: boolean;
-};
+const { seo: SEO } = AIRTABLE_BASES;
 
 export class AirtableClient {
-  private readonly apiKey: string;
-  private readonly baseId: string;
-  private readonly tables: ReturnType<typeof getSEOAnalyticsEnv>;
+  private readonly client: AirtableBaseTableClient;
 
-  constructor(env: ReturnType<typeof getSEOAnalyticsEnv>) {
-    this.apiKey = env.AIRTABLE_API_KEY;
-    this.baseId = env.AIRTABLE_BASE_ID;
-    this.tables = env;
-  }
-
-  private async request<T>(url: string, cacheTags?: string[], noCache?: boolean): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          Accept: "application/json"
-        },
-        ...(noCache
-          ? { cache: "no-store" as const }
-          : {
-              next: {
-                revalidate: REVALIDATE_SECONDS,
-                tags: cacheTags ?? ["airtable-seo"]
-              }
-            })
-      });
-
-      if (!response.ok) {
-        const message = await response.text();
-        throw new AirtableAPIError(message || "Airtable request failed", response.status, url);
-      }
-
-      return (await response.json()) as T;
-    } catch (error) {
-      if (error instanceof AirtableAPIError) throw error;
-      throw new AirtableAPIError("Airtable request timed out", 408, url);
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  private buildUrl(tableId: string, opts: FetchOpts = {}): string {
-    const url = new URL(tableRecordsPath(this.baseId, tableId));
-    if (opts.filterByFormula) {
-      url.searchParams.set("filterByFormula", opts.filterByFormula);
-    }
-    if (opts.maxRecords) {
-      url.searchParams.set("maxRecords", String(opts.maxRecords));
-    }
-    opts.sort?.forEach((entry, index) => {
-      url.searchParams.set(`sort[${index}][field]`, entry.field);
-      url.searchParams.set(`sort[${index}][direction]`, entry.direction ?? "desc");
+  constructor() {
+    this.client = new AirtableBaseTableClient({
+      baseName: SEO.name,
+      defaultCacheTag: "airtable-seo",
+      maxRecords: MAX_RECORDS
     });
-    return url.toString();
-  }
-
-  private async fetchAllPages<T>(
-    tableId: string,
-    mapper: (record: AirtableRecordRaw) => T,
-    opts: FetchOpts = {}
-  ): Promise<T[]> {
-    const results: T[] = [];
-    let offset: string | undefined;
-
-    do {
-      const baseUrl = this.buildUrl(tableId, opts);
-      const url = offset ? `${baseUrl}&offset=${encodeURIComponent(offset)}` : baseUrl;
-      const data = await this.request<AirtableListResponse>(url, opts.cacheTags, opts.noCache);
-      results.push(...data.records.map(mapper));
-      offset = data.offset;
-      if (results.length >= MAX_RECORDS) {
-        return results.slice(0, MAX_RECORDS);
-      }
-    } while (offset);
-
-    return results;
   }
 
   private cacheTagsForRange(dateRange?: DateRange): string[] {
@@ -132,69 +47,16 @@ export class AirtableClient {
     dateRange?: DateRange;
   }): Promise<SEOTrackingRow[]> {
     const dateFilter = opts?.dateRange ? endDateInRangeFormula(opts.dateRange) : undefined;
-    const rows = await this.fetchAllPages(
-      this.tables.AIRTABLE_SEO_TRACKING_TABLE_ID,
-      mapSEOTrackingRecord,
-      {
-        filterByFormula: combineFormulas(opts?.filter, dateFilter),
-        sort: [{ field: "Clicks", direction: "desc" }],
-        cacheTags: this.cacheTagsForRange(opts?.dateRange)
-      }
-    );
+    const rows = await this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
+      filterByFormula: combineFormulas(opts?.filter, dateFilter),
+      sort: [{ field: "Clicks", direction: "desc" }],
+      cacheTags: this.cacheTagsForRange(opts?.dateRange)
+    });
     return opts?.limit ? rows.slice(0, opts.limit) : rows;
   }
 
-  private async patchRecord(
-    tableId: string,
-    recordId: string,
-    fields: Record<string, unknown>
-  ): Promise<AirtableRecordRaw> {
-    const url = `${tableRecordsPath(this.baseId, tableId)}/${recordId}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(url, {
-        method: "PATCH",
-        signal: controller.signal,
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          Accept: "application/json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ fields }),
-        cache: "no-store"
-      });
-
-      if (!response.ok) {
-        const message = await response.text();
-        throw new AirtableAPIError(message || "Airtable patch failed", response.status, url);
-      }
-
-      return (await response.json()) as AirtableRecordRaw;
-    } catch (error) {
-      if (error instanceof AirtableAPIError) throw error;
-      throw new AirtableAPIError("Airtable patch timed out", 408, url);
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  private async deleteRecord(tableId: string, recordId: string): Promise<void> {
-    const url = `${tableRecordsPath(this.baseId, tableId)}/${recordId}`;
-    const response = await fetch(url, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${this.apiKey}` },
-      cache: "no-store"
-    });
-    if (!response.ok) {
-      const message = await response.text();
-      throw new AirtableAPIError(message || "Airtable delete failed", response.status, url);
-    }
-  }
-
   async updateActionStatus(recordId: string, status: ActionStatus): Promise<SEOTrackingRow> {
-    const raw = await this.patchRecord(this.tables.AIRTABLE_SEO_TRACKING_TABLE_ID, recordId, {
+    const raw = await this.client.patchRecord(SEO.tables.seoTracking, recordId, {
       "Action Status": status
     });
     return mapSEOTrackingRecord(raw);
@@ -211,7 +73,7 @@ export class AirtableClient {
       filter = statuses.length === 1 ? parts[0] : `OR(${parts.join(",")})`;
     }
 
-    const rows = await this.fetchAllPages(BLOG_PIPELINE_TABLE, mapBlogPipelineRecord, {
+    const rows = await this.client.fetchAllPages(SEO.tables.blogPipeline, mapBlogPipelineRecord, {
       filterByFormula: filter,
       sort: [
         { field: "Last Modified", direction: "desc" },
@@ -225,23 +87,16 @@ export class AirtableClient {
   }
 
   async getBlogTopicById(recordId: string): Promise<BlogPipelineRow | null> {
-    const url = `${tableRecordsPath(this.baseId, BLOG_PIPELINE_TABLE)}/${recordId}`;
-    try {
-      const raw = await this.request<AirtableRecordRaw>(url);
-      return mapBlogPipelineRecord(raw);
-    } catch (error) {
-      if (error instanceof AirtableAPIError && error.status === 404) return null;
-      throw error;
-    }
+    return this.client.getRecord(SEO.tables.blogPipeline, recordId, mapBlogPipelineRecord);
   }
 
   async updateBlogTopic(recordId: string, fields: Record<string, unknown>): Promise<BlogPipelineRow> {
-    const raw = await this.patchRecord(BLOG_PIPELINE_TABLE, recordId, fields);
+    const raw = await this.client.patchRecord(SEO.tables.blogPipeline, recordId, fields);
     return mapBlogPipelineRecord(raw);
   }
 
   async deleteBlogTopic(recordId: string): Promise<void> {
-    await this.deleteRecord(BLOG_PIPELINE_TABLE, recordId);
+    await this.client.deleteRecord(SEO.tables.blogPipeline, recordId);
   }
 
   async getCriticalKeywords(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
@@ -283,15 +138,11 @@ export class AirtableClient {
 
   async getTopPagesBySessions(limit = 50, dateRange?: DateRange): Promise<GA4PageRow[]> {
     const dateFilter = dateRange ? endDateInRangeFormula(dateRange) : undefined;
-    const rows = await this.fetchAllPages(
-      this.tables.AIRTABLE_GA4_PAGE_PERFORMANCE_TABLE_ID,
-      mapGA4PageRecord,
-      {
-        filterByFormula: dateFilter,
-        sort: [{ field: "Sessions", direction: "desc" }],
-        cacheTags: this.cacheTagsForRange(dateRange)
-      }
-    );
+    const rows = await this.client.fetchAllPages(SEO.tables.ga4PagePerformance, mapGA4PageRecord, {
+      filterByFormula: dateFilter,
+      sort: [{ field: "Sessions", direction: "desc" }],
+      cacheTags: this.cacheTagsForRange(dateRange)
+    });
     return rows.slice(0, limit);
   }
 
@@ -311,28 +162,20 @@ export class AirtableClient {
 
   async getTrafficSources(limit = 50, dateRange?: DateRange): Promise<GA4SourceRow[]> {
     const dateFilter = dateRange ? endDateInRangeFormula(dateRange) : undefined;
-    const rows = await this.fetchAllPages(
-      this.tables.AIRTABLE_GA4_TRAFFIC_SOURCES_TABLE_ID,
-      mapGA4SourceRecord,
-      {
-        filterByFormula: dateFilter,
-        sort: [{ field: "Sessions", direction: "desc" }],
-        cacheTags: this.cacheTagsForRange(dateRange)
-      }
-    );
+    const rows = await this.client.fetchAllPages(SEO.tables.ga4TrafficSources, mapGA4SourceRecord, {
+      filterByFormula: dateFilter,
+      sort: [{ field: "Sessions", direction: "desc" }],
+      cacheTags: this.cacheTagsForRange(dateRange)
+    });
     return rows.slice(0, limit);
   }
 
   async getChannelBreakdown(dateRange?: DateRange): Promise<ChannelBreakdownRow[]> {
     const dateFilter = dateRange ? endDateInRangeFormula(dateRange) : undefined;
-    const sources = await this.fetchAllPages(
-      this.tables.AIRTABLE_GA4_TRAFFIC_SOURCES_TABLE_ID,
-      mapGA4SourceRecord,
-      {
-        filterByFormula: dateFilter,
-        cacheTags: this.cacheTagsForRange(dateRange)
-      }
-    );
+    const sources = await this.client.fetchAllPages(SEO.tables.ga4TrafficSources, mapGA4SourceRecord, {
+      filterByFormula: dateFilter,
+      cacheTags: this.cacheTagsForRange(dateRange)
+    });
     const byChannel = new Map<string, number>();
     for (const row of sources) {
       const channel = row.channelGroup || "Other";
@@ -353,7 +196,7 @@ let singleton: AirtableClient | null = null;
 
 export function getAirtableClient(): AirtableClient {
   if (!singleton) {
-    singleton = new AirtableClient(getSEOAnalyticsEnv());
+    singleton = new AirtableClient();
   }
   return singleton;
 }

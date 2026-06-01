@@ -7,7 +7,6 @@ import { isBlogProcessing } from "@/lib/blog-pipeline/processing";
 import { COPY } from "@/lib/copy";
 import { StatusBadge } from "@/components/blog-pipeline/StatusBadge";
 import { PipelineStatusFilters, StatusCountPills } from "@/components/blog-pipeline/PipelineStatusFilters";
-import { SubmitTopicButton } from "@/components/blog-pipeline/SubmitTopicButton";
 import { TopicActions } from "@/components/blog-pipeline/TopicActions";
 import { CSVExportButton } from "@/components/ui/CSVExportButton";
 import { TablePagination } from "@/components/ui/TablePagination";
@@ -88,11 +87,6 @@ export function PipelineStatusTable({
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface p-8 text-center">
           <p className="text-sm text-textSecondary">{copy.empty}</p>
-          {canEdit ? (
-            <div className="mt-4">
-              <SubmitTopicButton onSubmitted={onSubmitted} />
-            </div>
-          ) : null}
         </div>
       ) : (
         <div className="space-y-4 rounded-xl border border-border bg-surface p-4 sm:p-6">

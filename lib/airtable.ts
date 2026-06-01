@@ -1,17 +1,9 @@
 import { AirtableFieldSchema, AirtableRecord, AirtableTableSchema, AirtableValue } from "@/lib/types";
+import { getAirtableApiKey } from "@/lib/airtable/config/env";
+import { AIRTABLE_BASES } from "@/lib/airtable/config/registry";
+import { resolveSeoBaseId } from "@/lib/airtable/meta/resolve-base";
+import { tableRecordsPath } from "@/lib/airtable/endpoints";
 
-const BASE_ID = process.env.AIRTABLE_BASE_ID;
-const API_KEY = process.env.AIRTABLE_API_KEY;
-
-if (!BASE_ID) {
-  throw new Error("Missing AIRTABLE_BASE_ID environment variable.");
-}
-
-if (!API_KEY) {
-  throw new Error("Missing AIRTABLE_API_KEY environment variable.");
-}
-
-const API_ROOT = `https://api.airtable.com/v0/${BASE_ID}`;
 export const AIRTABLE_REVALIDATE_SECONDS = 60;
 const MAX_ITERATOR_RESTARTS = 3;
 
@@ -28,15 +20,22 @@ interface AirtableSchemaResponse {
   }>;
 }
 
+async function getSeoApiRoot(): Promise<string> {
+  const baseId = await resolveSeoBaseId();
+  return `https://api.airtable.com/v0/${baseId}`;
+}
+
 export async function fetchTable<T extends Record<string, AirtableValue>>(
   tableName: string
 ): Promise<AirtableRecord<T>[]> {
+  const apiKey = getAirtableApiKey();
+  const apiRoot = await getSeoApiRoot();
   const records = new Map<string, AirtableRecord<T>>();
   let offset: string | undefined;
   let restartCount = 0;
 
   while (true) {
-    const url = new URL(`${API_ROOT}/${encodeURIComponent(tableName)}`);
+    const url = new URL(`${apiRoot}/${encodeURIComponent(tableName)}`);
 
     if (offset) {
       url.searchParams.set("offset", offset);
@@ -44,7 +43,7 @@ export async function fetchTable<T extends Record<string, AirtableValue>>(
 
     const response = await fetch(url.toString(), {
       headers: {
-        Authorization: `Bearer ${API_KEY}`
+        Authorization: `Bearer ${apiKey}`
       },
       next: {
         revalidate: AIRTABLE_REVALIDATE_SECONDS
@@ -88,9 +87,11 @@ export async function fetchTable<T extends Record<string, AirtableValue>>(
 }
 
 export async function fetchTableSchema(tableName: string): Promise<AirtableTableSchema | null> {
-  const response = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE_ID}/tables`, {
+  const apiKey = getAirtableApiKey();
+  const baseId = await resolveSeoBaseId();
+  const response = await fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables`, {
     headers: {
-      Authorization: `Bearer ${API_KEY}`
+      Authorization: `Bearer ${apiKey}`
     },
     next: {
       revalidate: AIRTABLE_REVALIDATE_SECONDS
@@ -112,4 +113,14 @@ export async function fetchTableSchema(tableName: string): Promise<AirtableTable
     tableName,
     fields: table.fields
   };
+}
+
+/** SEO base name for API routes that need direct Airtable URLs. */
+export const SEO_AIRTABLE_BASE_NAME = AIRTABLE_BASES.seo.name;
+
+/** Build a record URL for the SEO base (tableId param is a table name or ID). */
+export async function seoTableRecordUrl(tableNameOrId: string, recordId?: string): Promise<string> {
+  const baseId = await resolveSeoBaseId();
+  const path = tableRecordsPath(baseId, tableNameOrId);
+  return recordId ? `${path}/${recordId}` : path;
 }

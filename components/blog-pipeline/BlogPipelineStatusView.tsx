@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import type { BlogPipelineRow } from "@/lib/airtable/blog-pipeline";
 import { hasProcessingBlogs } from "@/lib/blog-pipeline/processing";
 import { PipelineStatusTable } from "@/components/blog-pipeline/PipelineStatusTable";
-import { SubmitTopicButton } from "@/components/blog-pipeline/SubmitTopicButton";
 import { COPY } from "@/lib/copy";
 
 const POLL_MS = 8_000;
@@ -48,16 +47,6 @@ export function BlogPipelineStatusView({
     return () => window.clearInterval(timer);
   }, [rows, refreshRows]);
 
-  function handleSubmitted(row: BlogPipelineRow) {
-    setRows((current) => {
-      if (current.some((item) => item.id === row.id)) {
-        return current.map((item) => (item.id === row.id ? row : item));
-      }
-      return [row, ...current];
-    });
-    void refreshRows({ silent: true });
-  }
-
   return (
     <div className="space-y-6 sm:space-y-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -75,11 +64,10 @@ export function BlogPipelineStatusView({
           >
             {copy.refresh}
           </button>
-          {canEdit ? <SubmitTopicButton onSubmitted={handleSubmitted} /> : null}
         </div>
       </header>
 
-      <PipelineStatusTable rows={rows} canEdit={canEdit} onSubmitted={handleSubmitted} />
+      <PipelineStatusTable rows={rows} canEdit={canEdit} />
     </div>
   );
 }

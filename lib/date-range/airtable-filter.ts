@@ -25,8 +25,9 @@ export function klaviyoDateInRangeFormula(range: DateRange): string {
   return dateFieldInRangeFormula("Date", range);
 }
 
+/** Campaign rows span Date Start–Date Stop; include any campaign active during the range. */
 export function metaCampaignDateInRangeFormula(range: DateRange): string {
-  return dateFieldInRangeFormula("Date Start", range);
+  return `AND({Date Start} <= "${range.to}", OR({Date Stop} = BLANK(), {Date Stop} >= "${range.from}"))`;
 }
 
 export function metaAdInsightsDateInRangeFormula(range: DateRange): string {

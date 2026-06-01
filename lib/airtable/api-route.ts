@@ -10,7 +10,7 @@ export async function getAirtableClientLazy() {
 export async function airtableJsonRoute<T>(handler: () => Promise<T>) {
   if (!isSEOAnalyticsConfigured()) {
     return NextResponse.json(
-      { error: "SEO Analytics is not configured. Set Airtable table IDs in .env.local." },
+      { error: "SEO Analytics is not configured. Set AIRTABLE_API_KEY in .env.local." },
       { status: 503 }
     );
   }

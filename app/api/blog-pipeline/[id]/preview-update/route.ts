@@ -6,6 +6,9 @@ import { triggerBlogSyncWebhook } from "@/lib/blog-pipeline/sync-webhook";
 import { logAuditEvent, getRequestContext } from "@/lib/audit/logger";
 import { READONLY_FIELDS } from "@/lib/editing";
 import { BlogPipelineFields } from "@/lib/types";
+import { AIRTABLE_BASES } from "@/lib/airtable/config/registry";
+import { getAirtableApiKey, isAirtableConfigured } from "@/lib/airtable/config/env";
+import { seoTableRecordUrl } from "@/lib/airtable";
 
 const PREVIEW_EDITABLE_FIELDS = new Set([
   "Blog Title",
@@ -15,15 +18,13 @@ const PREVIEW_EDITABLE_FIELDS = new Set([
 ]);
 
 async function fetchBlogRecord(recordId: string) {
-  const baseId = process.env.AIRTABLE_BASE_ID;
-  const apiKey = process.env.AIRTABLE_API_KEY;
-  if (!baseId || !apiKey) {
+  if (!isAirtableConfigured()) {
     throw new Error("Airtable is not configured");
   }
 
-  const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent("Blog Pipeline")}/${recordId}`;
+  const url = await seoTableRecordUrl(AIRTABLE_BASES.seo.tables.blogPipeline, recordId);
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: { Authorization: `Bearer ${getAirtableApiKey()}` },
     cache: "no-store"
   });
 
@@ -55,20 +56,18 @@ export async function PATCH(
     )
   );
 
-  const baseId = process.env.AIRTABLE_BASE_ID;
-  const apiKey = process.env.AIRTABLE_API_KEY;
-  if (!baseId || !apiKey) {
+  if (!isAirtableConfigured()) {
     return NextResponse.json({ error: "Airtable is not configured" }, { status: 500 });
   }
 
   const fieldsChanged = Object.keys(airtableFields);
 
   if (fieldsChanged.length > 0) {
-    const patchUrl = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent("Blog Pipeline")}/${params.id}`;
+    const patchUrl = await seoTableRecordUrl(AIRTABLE_BASES.seo.tables.blogPipeline, params.id);
     const patchResponse = await fetch(patchUrl, {
       method: "PATCH",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${getAirtableApiKey()}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ fields: airtableFields })

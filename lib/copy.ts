@@ -76,6 +76,31 @@ export const COPY = {
     meta: {
       title: "Dashboard Overview · ENERGYbits",
       description: "Cross-channel summary of AI visibility, site readiness, SEO, and Google Ads performance."
+    },
+    intelligenceGaps: {
+      title: "Intelligence Gaps",
+      subtitle: "Cross-pillar opportunities from SEO, AEO, and GEO data — ready for AI-driven recommendations.",
+      critical: "Critical",
+      high: "High",
+      medium: "Medium",
+      downloadButton: "Download Full Report",
+      downloading: "Generating report…",
+      downloadError: "Failed to generate intelligence report. Try again.",
+      triggerButton: "Trigger AI",
+      triggerError: "Unable to generate recommendations. Try again.",
+      triggerNotConfigured: "Recommendation automation is not configured.",
+      triggerTooltip: "Send the combined intelligence report to generate keyword and blog recommendations",
+      notConfigured: "Connect SEO Analytics and Cairrot to generate combined intelligence reports.",
+      triggerAI: {
+        button: "Trigger AI",
+        loading: "Generating recommendations…",
+        success:
+          "Recommendations generating. Check Keywords and AEO Prompts pages in 2–3 minutes.",
+        error: "Failed to trigger recommendations. Please try again.",
+        networkError:
+          "Could not reach Make.com. Check your connection or VPN, wait a moment, and try again.",
+        cooldown: "Please wait before triggering again."
+      }
     }
   },
   aeoAnalytics: {
@@ -308,7 +333,7 @@ export const COPY = {
     },
     notConfigured: {
       title: "SEO Analytics not configured",
-      description: "Add Airtable table IDs to .env.local. See .env.example for required keys."
+      description: "Add AIRTABLE_API_KEY to .env.local. See .env.example."
     },
     loadError: "Unable to load SEO Analytics data.",
     tabs: {
@@ -428,32 +453,10 @@ export const COPY = {
     title: "Blog pipeline",
     subtitle: "Where each blog topic is in the production process",
     statusCounts: "Creating ({creating}) · Ready ({ready}) · Drafting ({drafting}) · Review ({review}) · Published ({published})",
-    empty: "No blog topics in the pipeline yet. Submit one to get started.",
-    submitCta: "Submit a topic",
+    empty: "No blog topics in the pipeline yet.",
     refresh: "Refresh",
     refreshing: "Refreshing…",
     creatingHint: "Blog is being created…",
-    submitModal: {
-      eyebrow: "Blog pipeline",
-      title: "Submit a topic",
-      subtitle: "Enter your blog topic — we'll attach the best matching keyword and AEO prompt automatically.",
-      blogTitleLabel: "Blog topic",
-      blogTitlePlaceholder: "e.g. Spirulina benefits for endurance athletes",
-      autoSuggestions: "Auto-matched from your recommendations",
-      suggestedKeyword: "Suggested keyword",
-      suggestedPrompt: "Suggested AEO prompt",
-      noKeywordMatch: "No close keyword match — your topic will still be submitted.",
-      noPromptMatch: "No close AEO prompt match — your topic will still be submitted.",
-      matching: "Finding matching recommendations…",
-      loadingRecs: "Loading recommendations…",
-      loadRecsError: "Could not load recommendations.",
-      titleRequired: "Blog topic is required.",
-      submit: "Submit & create blog",
-      submitting: "Creating blog…",
-      submitFailed: "Could not submit topic.",
-      webhookWarning: "Topic saved but webhook failed",
-      success: "Blog creation started — it will appear here when ready."
-    },
     editTopic: "Edit topic",
     editTooltip: "Edit this topic before AI starts drafting it.",
     deleteTopic: "Delete topic",
@@ -512,7 +515,7 @@ export const COPY = {
     },
     notConfigured: {
       title: "Google Ads Analytics not configured",
-      description: "Add Google Ads Airtable table IDs to .env.local. See .env.example for required keys."
+      description: "Add AIRTABLE_API_KEY to .env.local. See .env.example."
     },
     loadError: "Unable to load Google Ads Analytics data.",
     tabs: {
@@ -627,7 +630,7 @@ export const COPY = {
     },
     notConfigured: {
       title: "Criteo Ads Analytics not configured",
-      description: "Add Criteo Airtable base and table IDs to .env.local. See .env.example for required keys."
+      description: "Add AIRTABLE_API_KEY to .env.local. See .env.example."
     },
     loadError: "Unable to load Criteo Ads Analytics data.",
     tabs: {
@@ -737,7 +740,7 @@ export const COPY = {
     },
     notConfigured: {
       title: "Vibe.co Analytics not configured",
-      description: "Add Vibe.co Airtable base and table IDs to .env.local. See .env.example."
+      description: "Add AIRTABLE_API_KEY to .env.local. See .env.example."
     },
     loadError: "Unable to load Vibe.co Analytics data.",
     tabs: {
@@ -778,7 +781,7 @@ export const COPY = {
     },
     notConfigured: {
       title: "Meta Analytics not configured",
-      description: "Add Meta Airtable base and table IDs to .env.local. See .env.example."
+      description: "Add AIRTABLE_API_KEY to .env.local. See .env.example."
     },
     loadError: "Unable to load Meta Analytics data.",
     tabs: {
@@ -865,7 +868,7 @@ export const COPY = {
     },
     notConfigured: {
       title: "Klaviyo Analytics not configured",
-      description: "Add Klaviyo Airtable base and table IDs to .env.local. See .env.example."
+      description: "Add AIRTABLE_API_KEY to .env.local. See .env.example."
     },
     loadError: "Unable to load Klaviyo Analytics data.",
     tabs: {

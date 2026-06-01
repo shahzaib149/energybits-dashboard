@@ -5,15 +5,16 @@ import { buildBlogSyncPayload } from "@/lib/blog-pipeline/sync-payload";
 import { triggerBlogSyncWebhook } from "@/lib/blog-pipeline/sync-webhook";
 import { logAuditEvent, getRequestContext } from "@/lib/audit/logger";
 import { BlogPipelineFields } from "@/lib/types";
+import { AIRTABLE_BASES } from "@/lib/airtable/config/registry";
+import { getAirtableApiKey, isAirtableConfigured } from "@/lib/airtable/config/env";
+import { seoTableRecordUrl } from "@/lib/airtable";
 
 async function fetchBlogRecord(recordId: string) {
-  const baseId = process.env.AIRTABLE_BASE_ID;
-  const apiKey = process.env.AIRTABLE_API_KEY;
-  if (!baseId || !apiKey) return null;
+  if (!isAirtableConfigured()) return null;
 
-  const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent("Blog Pipeline")}/${recordId}`;
+  const url = await seoTableRecordUrl(AIRTABLE_BASES.seo.tables.blogPipeline, recordId);
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: { Authorization: `Bearer ${getAirtableApiKey()}` },
     cache: "no-store"
   });
 

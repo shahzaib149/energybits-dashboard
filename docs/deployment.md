@@ -18,36 +18,13 @@ Production runs on [Vercel](https://vercel.com). All secrets must be configured 
 | `CAIRROT_API_BASE_URL` | Server only (default: `https://api.cairrot.com`) |
 | `CAIRROT_PROJECT_ID` | Server only |
 
-## Airtable — SEO / GA4 base
+## Airtable (all integrations)
 
 | Variable | Scope |
 |----------|-------|
-| `AIRTABLE_API_KEY` | Server only |
-| `AIRTABLE_BASE_ID` | Server only |
-| `AIRTABLE_SEO_TRACKING_TABLE_ID` | Server only |
-| `AIRTABLE_SEO_RUNS_TABLE_ID` | Server only |
-| `AIRTABLE_GA4_PAGE_PERFORMANCE_TABLE_ID` | Server only |
-| `AIRTABLE_GA4_TRAFFIC_SOURCES_TABLE_ID` | Server only |
-| `AIRTABLE_GA4_RUNS_TABLE_ID` | Server only |
+| `AIRTABLE_API_KEY` | Server only — personal access token with access to all ENERGYbits bases |
 
-## Airtable — Google Ads base
-
-| Variable | Scope |
-|----------|-------|
-| `AIRTABLE_GOOGLE_ADS_BASE_ID` | Server only |
-| `AIRTABLE_GOOGLE_ADS_CAMPAIGNS_TABLE_ID` | Server only |
-| `AIRTABLE_GOOGLE_ADS_AD_GROUPS_TABLE_ID` | Server only |
-| `AIRTABLE_GOOGLE_ADS_CREATIVES_TABLE_ID` | Server only |
-| `AIRTABLE_GOOGLE_ADS_KEYWORDS_TABLE_ID` | Server only |
-
-## Airtable — Klaviyo base
-
-| Variable | Scope |
-|----------|-------|
-| `AIRTABLE_KLAVIYO_BASE_ID` | Server only |
-| `AIRTABLE_KLAVIYO_ANALYTICS_TABLE_ID` | Server only |
-
-See [Klaviyo Analytics](./features/klaviyo-analytics.md).
+Base and table IDs are resolved at runtime via the Airtable Meta API. See [Airtable configuration](./features/airtable-configuration.md).
 
 ## Optional
 

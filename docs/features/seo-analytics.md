@@ -8,36 +8,31 @@ Read-only dashboard at `/seo-analytics` displaying Google Search Console (GSC) a
 |-------|----------|-------|
 | Data source | Airtable REST API | Server-side only |
 | Client | `lib/airtable/client.ts` | Singleton with 5-min cache (`revalidate: 300`) |
-| Env validation | `lib/seo-analytics/env.ts` | Table IDs + base ID + API key |
+| Env validation | `lib/seo-analytics/env.ts` | Checks `AIRTABLE_API_KEY` only |
+| Registry | `lib/airtable/config/registry.ts` | Base/table names (IDs resolved via Meta API) |
 | Page | `app/seo-analytics/page.tsx` | Parallel fetches, URL tab state |
 | API proxies | `app/api/airtable/*` | Thin handlers for optional client use |
 | UI | `components/seo-analytics/*` | Recharts, dark theme matching Overview |
 
 ## Environment Variables
 
-Required in `.env.local` (see `.env.example`):
+Only `AIRTABLE_API_KEY` is required. Base and table IDs are resolved automatically — see [airtable-configuration.md](./airtable-configuration.md).
 
 ```
-AIRTABLE_API_KEY
-AIRTABLE_BASE_ID
-AIRTABLE_SEO_TRACKING_TABLE_ID
-AIRTABLE_SEO_RUNS_TABLE_ID
-AIRTABLE_GA4_PAGE_PERFORMANCE_TABLE_ID
-AIRTABLE_GA4_TRAFFIC_SOURCES_TABLE_ID
-AIRTABLE_GA4_RUNS_TABLE_ID
+AIRTABLE_API_KEY=pat...
 ```
 
 The API key never reaches the browser bundle.
 
 ## Airtable Tables
 
-| Table | ID | Used for |
-|-------|-----|----------|
-| SEO Tracking | `tblrBHao3YzF9943a` | GSC keyword data |
-| SEO Runs | `tblg9NS7BD9DPsEqS` | GSC pull audit (latest-run route) |
-| GA4 Page Performance | `tblQBQLS0VkkuYjLS` | Page engagement |
-| GA4 Traffic Sources | `tbliV8j2feMn9sAPW` | Channel/source breakdown |
-| GA4 Runs | `tblyDFLttECDli98s` | GA4 pull audit |
+| Table | Used for |
+|-------|----------|
+| SEO Tracking | GSC keyword data |
+| SEO Runs | GSC pull audit (latest-run route) |
+| GA4 Page Performance | Page engagement |
+| GA4 Traffic Sources | Channel/source breakdown |
+| GA4 Runs | GA4 pull audit |
 
 Field mapping lives in `lib/airtable/map.ts` and types in `lib/airtable/types.ts`.
 
