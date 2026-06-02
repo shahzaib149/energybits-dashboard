@@ -15,5 +15,6 @@ export const permissions = {
   canDismissTopAction: (role: Role) => role === "admin" || role === "editor",
   canManageUsers: (role: Role) => role === "admin",
   canViewAuditLog: (role: Role) => role === "admin",
+  canManageCronSettings: (role: Role) => role === "admin",
   canExportData: (_role: Role) => true
 };

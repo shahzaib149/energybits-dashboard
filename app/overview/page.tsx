@@ -18,6 +18,7 @@ import {
 } from "@/components/overview-hub/HealthDashboard";
 import { TopActionsPanel } from "@/components/overview-hub/TopActionsPanel";
 import { IntelligenceGapsCard } from "@/components/overview/IntelligenceGapsCard";
+import { WeeklyAutoTriggerCard } from "@/components/overview/WeeklyAutoTriggerCard";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 
 export const metadata: Metadata = {
@@ -59,6 +60,10 @@ export default async function OverviewPage({
         gaps={gapSummary}
         dateRange={dateRange}
         configured={intelligenceConfigured}
+        webhookConfigured={webhookConfigured}
+      />
+      <WeeklyAutoTriggerCard
+        userRole={user?.role ?? null}
         webhookConfigured={webhookConfigured}
       />
       <div className="overflow-hidden rounded-2xl border border-border bg-surface">

@@ -17,6 +17,8 @@ export type AuditAction =
   | "intelligence_report.downloaded"
   | "intelligence_report.triggered"
   | "intelligence_recommendations_triggered"
+  | "intelligence_auto_triggered"
+  | "weekly_report_triggered"
   | "user.invited"
   | "user.role_changed";
 

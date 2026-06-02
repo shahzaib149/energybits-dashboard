@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Download, Loader2, Sparkles } from "lucide-react";
+import { Loader2, Mail, Sparkles } from "lucide-react";
 import { COPY } from "@/lib/copy";
-import type { CombinedIntelligenceReport, IntelligenceGapSummary } from "@/lib/reports/types";
+import type { IntelligenceGapSummary } from "@/lib/reports/types";
 import type { DateRange } from "@/lib/date-range/types";
 import { reportQueryFromDateRange } from "@/lib/reports/parse-report-params";
 import { cn } from "@/lib/utils";
@@ -26,13 +26,12 @@ export function IntelligenceGapsCard({
 }: IntelligenceGapsCardProps) {
   const copy = COPY.hub.intelligenceGaps;
   const triggerCopy = copy.triggerAI;
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isWeeklyReporting, setIsWeeklyReporting] = useState(false);
   const [isTriggering, setIsTriggering] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
 
   const query = reportQueryFromDateRange(dateRange);
-  const busy = isDownloading || isTriggering;
+  const busy = isWeeklyReporting || isTriggering;
   const onCooldown = cooldownUntil != null && Date.now() < cooldownUntil;
 
   useEffect(() => {
@@ -46,46 +45,21 @@ export function IntelligenceGapsCard({
     return () => clearTimeout(timer);
   }, [cooldownUntil]);
 
-  async function fetchFreshReport(): Promise<CombinedIntelligenceReport> {
-    const response = await fetch(`/api/reports/combined-intelligence?${query.toString()}`);
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-      throw new Error(payload.error ?? copy.downloadError);
-    }
-    return (await response.json()) as CombinedIntelligenceReport;
-  }
-
-  async function handleDownloadReport() {
-    setIsDownloading(true);
-    setDownloadError(null);
-
+  async function handleWeeklyReport() {
+    if (!webhookConfigured) return;
+    setIsWeeklyReporting(true);
     try {
-      const report = await fetchFreshReport();
-      const dateStamp = new Date().toISOString().split("T")[0];
-      const filename = `energybits-intelligence-report-${dateStamp}.json`;
-
-      const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-      URL.revokeObjectURL(url);
-
-      await fetch("/api/reports/combined-intelligence/audit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          days: report.dateRange?.days ?? 28,
-          gapCount: report.actionableGaps?.totalGaps ?? 0,
-          filename
-        })
-      });
+      const response = await fetch("/api/reports/weekly-report", { method: "POST" });
+      const data = (await response.json().catch(() => ({}))) as { success?: boolean; error?: string };
+      if (!response.ok || !data.success) {
+        throw new Error(data.error ?? "Failed to send weekly report");
+      }
+      toast.success("Report sent to email");
     } catch (err) {
-      console.error("Failed to generate report:", err);
-      setDownloadError(err instanceof Error ? err.message : copy.downloadError);
+      console.error("Failed to send weekly report:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to send weekly report");
     } finally {
-      setIsDownloading(false);
+      setIsWeeklyReporting(false);
     }
   }
 
@@ -135,6 +109,7 @@ export function IntelligenceGapsCard({
     );
   }
 
+  const weeklyReportDisabled = busy || !webhookConfigured;
   const triggerDisabled = busy || !webhookConfigured || onCooldown;
   const triggerTitle = !webhookConfigured
     ? copy.triggerNotConfigured
@@ -160,19 +135,20 @@ export function IntelligenceGapsCard({
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={handleDownloadReport}
-          disabled={busy}
+          onClick={handleWeeklyReport}
+          disabled={weeklyReportDisabled}
+          title={!webhookConfigured ? "Weekly report webhook not configured" : "Send weekly summary to email"}
           className={cn(
             "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
             "bg-brand text-white hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-60"
           )}
         >
-          {isDownloading ? (
+          {isWeeklyReporting ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
           ) : (
-            <Download className="h-4 w-4" aria-hidden />
+            <Mail className="h-4 w-4" aria-hidden />
           )}
-          {isDownloading ? copy.downloading : copy.downloadButton}
+          {isWeeklyReporting ? "Sending…" : "Generate Weekly Report"}
         </button>
 
         <button
@@ -195,8 +171,6 @@ export function IntelligenceGapsCard({
           {isTriggering ? triggerCopy.loading : triggerCopy.button}
         </button>
       </div>
-
-      {downloadError ? <p className="mt-3 text-sm text-red-400">{downloadError}</p> : null}
     </section>
   );
 }
