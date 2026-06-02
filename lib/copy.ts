@@ -918,10 +918,9 @@ export const COPY = {
       "Choose the time period to analyze. Default is the last 28 days, matching Google Analytics standard.",
     presets: {
       "7d": "Last 7 days",
-      "28d": "Last 28 days",
-      "90d": "Last 90 days",
-      "12m": "Last 12 months",
-      custom: "Custom range..."
+      "14d": "Last 14 days",
+      "21d": "Last 21 days",
+      "28d": "Last 28 days"
     },
     customPickerTitle: "Select date range",
     apply: "Apply",

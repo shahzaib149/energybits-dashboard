@@ -16,12 +16,7 @@ export function parseReportDateRange(searchParams: URLSearchParams): DateRange {
 
 export function reportQueryFromDateRange(dateRange: DateRange): URLSearchParams {
   const query = new URLSearchParams();
-  if (dateRange.preset === "custom") {
-    query.set("from", dateRange.from);
-    query.set("to", dateRange.to);
-  } else {
-    const daysMap: Record<string, number> = { "7d": 7, "28d": 28, "90d": 90, "12m": 365 };
-    query.set("days", String(daysMap[dateRange.preset] ?? 28));
-  }
+  const daysMap: Record<string, number> = { "7d": 7, "14d": 14, "21d": 21, "28d": 28 };
+  query.set("days", String(daysMap[dateRange.preset] ?? 28));
   return query;
 }

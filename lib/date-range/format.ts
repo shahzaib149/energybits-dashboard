@@ -11,10 +11,6 @@ export function formatDateRangeLabel(range: DateRange): string {
 export function buildDateRangeSearchParams(range: DateRange): URLSearchParams {
   const params = new URLSearchParams();
   params.set("dateRange", range.preset);
-  if (range.preset === "custom") {
-    params.set("from", range.from);
-    params.set("to", range.to);
-  }
   return params;
 }
 

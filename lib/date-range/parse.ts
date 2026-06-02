@@ -1,12 +1,12 @@
 import type { DateRange, DateRangePreset, ParseDateRangeResult } from "@/lib/date-range/types";
 
-const VALID_PRESETS: DateRangePreset[] = ["7d", "28d", "90d", "12m", "custom"];
+const VALID_PRESETS: DateRangePreset[] = ["7d", "14d", "21d", "28d"];
 
-const DAYS_MAP: Record<Exclude<DateRangePreset, "custom">, number> = {
+const DAYS_MAP: Record<DateRangePreset, number> = {
   "7d": 7,
-  "28d": 28,
-  "90d": 90,
-  "12m": 365
+  "14d": 14,
+  "21d": 21,
+  "28d": 28
 };
 
 export function formatYYYYMMDD(d: Date): string {
@@ -46,41 +46,12 @@ export function defaultRange(): DateRange {
 export function parseDateRange(
   searchParams: Record<string, string | undefined>
 ): ParseDateRangeResult {
-  const preset = (searchParams.dateRange as DateRangePreset) ?? "28d";
-
-  if (!VALID_PRESETS.includes(preset)) {
-    return { range: defaultRange(), invalid: true, clampedToFuture: false };
-  }
+  const raw = searchParams.dateRange;
+  const preset = VALID_PRESETS.includes(raw as DateRangePreset)
+    ? (raw as DateRangePreset)
+    : "28d";
 
   const today = todayLocal();
-  const todayStr = formatYYYYMMDD(today);
-
-  if (preset === "custom") {
-    const from = searchParams.from;
-    const to = searchParams.to;
-
-    if (!from || !to || !isValidYYYYMMDD(from) || !isValidYYYYMMDD(to)) {
-      return { range: defaultRange(), invalid: true, clampedToFuture: false };
-    }
-
-    if (from > to) {
-      return { range: defaultRange(), invalid: true, clampedToFuture: false };
-    }
-
-    let clampedToFuture = false;
-    let effectiveTo = to;
-    if (to > todayStr) {
-      effectiveTo = todayStr;
-      clampedToFuture = true;
-    }
-
-    return {
-      range: { preset: "custom", from, to: effectiveTo },
-      invalid: false,
-      clampedToFuture
-    };
-  }
-
   const days = DAYS_MAP[preset];
   const from = subtractDays(today, days);
 
@@ -88,7 +59,7 @@ export function parseDateRange(
     range: {
       preset,
       from: formatYYYYMMDD(from),
-      to: todayStr
+      to: formatYYYYMMDD(today)
     },
     invalid: false,
     clampedToFuture: false

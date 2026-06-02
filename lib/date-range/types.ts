@@ -1,4 +1,4 @@
-export type DateRangePreset = "7d" | "28d" | "90d" | "12m" | "custom";
+export type DateRangePreset = "7d" | "14d" | "21d" | "28d";
 
 export interface DateRange {
   preset: DateRangePreset;
