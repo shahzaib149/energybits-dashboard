@@ -454,6 +454,11 @@ export const COPY = {
     subtitle: "Where each blog topic is in the production process",
     statusCounts: "Creating ({creating}) · Ready ({ready}) · Drafting ({drafting}) · Review ({review}) · Published ({published})",
     empty: "No blog topics in the pipeline yet.",
+    emptyPublished: "No published blogs yet.",
+    tabs: {
+      pipeline: "Pipeline",
+      published: "Published blogs"
+    },
     refresh: "Refresh",
     refreshing: "Refreshing…",
     creatingHint: "Blog is being created…",

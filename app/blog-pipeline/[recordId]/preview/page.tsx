@@ -22,10 +22,11 @@ export default async function BlogPreviewPage({ params }: { params: { recordId: 
   const canEdit = user !== null && permissions.canEditBlogTopic(user.role);
   const canPublish = user !== null && permissions.canPublishBlog(user.role);
   const blogTitle = record.fields["Blog Title"] || "Untitled Blog";
+  const blogStatus = record.fields["Blog Status"] || "Ready";
 
   return (
     <div className="space-y-6">
-      <BlogPreviewHeader recordId={record.id} blogTitle={blogTitle} canPublish={canPublish} />
+      <BlogPreviewHeader recordId={record.id} blogTitle={blogTitle} canPublish={canPublish} blogStatus={blogStatus} />
       <BlogPreviewEditor initialRecord={record} canEdit={canEdit} />
     </div>
   );

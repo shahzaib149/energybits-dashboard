@@ -12,9 +12,7 @@ const ALL_STATUSES: (BlogStatus | "all")[] = [
   "Needs Review",
   "Revision Needed",
   "Approved",
-  "Image Ready",
-  "Shopify Draft Created",
-  "Published"
+  "Image Ready"
 ];
 
 export function PipelineStatusFilters({

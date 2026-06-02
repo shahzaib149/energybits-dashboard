@@ -5,11 +5,13 @@ import { BlogPublishButton } from "@/components/blog-pipeline/BlogPublishButton"
 export function BlogPreviewHeader({
   recordId,
   blogTitle,
-  canPublish
+  canPublish,
+  blogStatus
 }: {
   recordId: string;
   blogTitle: string;
   canPublish: boolean;
+  blogStatus: string;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -20,7 +22,7 @@ export function BlogPreviewHeader({
         <ArrowLeft className="h-4 w-4" />
         Back to Blog Pipeline
       </Link>
-      <BlogPublishButton recordId={recordId} blogTitle={blogTitle} canPublish={canPublish} />
+      <BlogPublishButton recordId={recordId} blogTitle={blogTitle} canPublish={canPublish} blogStatus={blogStatus} />
     </div>
   );
 }

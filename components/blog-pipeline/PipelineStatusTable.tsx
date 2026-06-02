@@ -30,13 +30,12 @@ function countByStatus(rows: BlogPipelineRow[]) {
 export function PipelineStatusTable({
   rows,
   canEdit,
-  onSubmitted
 }: {
   rows: BlogPipelineRow[];
   canEdit: boolean;
-  onSubmitted?: (row: BlogPipelineRow) => void;
 }) {
   const copy = COPY.blogPipeline;
+  const [tab, setTab] = useState<"pipeline" | "published">("pipeline");
   const [filter, setFilter] = useState<BlogStatus | "all">("all");
   const [search, setSearch] = useState("");
   const [, startTransition] = useTransition();
@@ -51,8 +50,13 @@ export function PipelineStatusTable({
     }
   );
 
-  const filtered =
-    filter === "all" ? optimisticRows : optimisticRows.filter((r) => r.blogStatus === filter);
+  const baseRows = optimisticRows.filter((row) => {
+    const isPublishedLike =
+      row.blogStatus === "Published" || row.blogStatus === "Scheduled" || row.blogStatus === "Shopify Draft Created";
+    return tab === "published" ? isPublishedLike : !isPublishedLike;
+  });
+
+  const filtered = filter === "all" ? baseRows : baseRows.filter((r) => r.blogStatus === filter);
 
   const searched = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -73,6 +77,32 @@ export function PipelineStatusTable({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-4">
+          <div className="inline-flex rounded-lg border border-border bg-surfaceElevated/50 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setTab("pipeline");
+                setFilter("all");
+              }}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                tab === "pipeline" ? "bg-brand/20 text-brand" : "text-textMuted hover:text-textPrimary"
+              }`}
+            >
+              {copy.tabs.pipeline}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab("published");
+                setFilter("all");
+              }}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                tab === "published" ? "bg-brand/20 text-brand" : "text-textMuted hover:text-textPrimary"
+              }`}
+            >
+              {copy.tabs.published}
+            </button>
+          </div>
           <StatusCountPills counts={countByStatus(optimisticRows)} />
           <PipelineStatusFilters value={filter} onChange={setFilter} />
         </div>
@@ -86,7 +116,7 @@ export function PipelineStatusTable({
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface p-8 text-center">
-          <p className="text-sm text-textSecondary">{copy.empty}</p>
+          <p className="text-sm text-textSecondary">{tab === "published" ? copy.emptyPublished : copy.empty}</p>
         </div>
       ) : (
         <div className="space-y-4 rounded-xl border border-border bg-surface p-4 sm:p-6">

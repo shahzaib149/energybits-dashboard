@@ -22,6 +22,11 @@ async function fetchBlogRecord(recordId: string) {
   return (await response.json()) as { id: string; fields: BlogPipelineFields };
 }
 
+function isAlreadyPublishedStatus(status: unknown): boolean {
+  const value = typeof status === "string" ? status : "";
+  return value === "Published" || value === "Scheduled" || value === "Shopify Draft Created";
+}
+
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
@@ -37,6 +42,9 @@ export async function POST(
   const record = await fetchBlogRecord(params.id);
   if (!record) {
     return NextResponse.json({ error: "Blog not found" }, { status: 404 });
+  }
+  if (isAlreadyPublishedStatus(record.fields["Blog Status"])) {
+    return NextResponse.json({ error: "Blog has already been published." }, { status: 409 });
   }
 
   const { ipAddress, userAgent } = getRequestContext(request);

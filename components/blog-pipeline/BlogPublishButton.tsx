@@ -8,15 +8,19 @@ import { COPY } from "@/lib/copy";
 export function BlogPublishButton({
   recordId,
   blogTitle,
-  canPublish
+  canPublish,
+  blogStatus
 }: {
   recordId: string;
   blogTitle: string;
   canPublish: boolean;
+  blogStatus: string;
 }) {
   const copy = COPY.blogPipeline.publish;
   const [pending, startTransition] = useTransition();
   const [published, setPublished] = useState(false);
+  const alreadyPublished =
+    blogStatus === "Published" || blogStatus === "Scheduled" || blogStatus === "Shopify Draft Created";
 
   if (!canPublish) return null;
 
@@ -50,7 +54,7 @@ export function BlogPublishButton({
       className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brandHover disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-      {pending ? copy.publishing : published ? copy.published : copy.button}
+      {pending ? copy.publishing : published || alreadyPublished ? copy.published : copy.button}
     </button>
   );
 }
