@@ -78,6 +78,21 @@ export function weightedCpm(rows: MetaCampaignRow[]): number {
   return computeCpm(sumSpend(rows), sumImpressions(rows));
 }
 
+/**
+ * Removes duplicate campaign rows where the same campaignId + dateStart appears more than once.
+ * Make.com occasionally syncs the same day's data multiple times, producing duplicate Airtable
+ * records that inflate every metric. Always call this before aggregating or summing.
+ */
+export function deduplicateCampaignRows(rows: MetaCampaignRow[]): MetaCampaignRow[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const key = `${row.campaignId || row.campaignName}__${row.dateStart}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function uniqueCampaignCount(rows: MetaCampaignRow[]): number {
   return new Set(rows.map((row) => row.campaignId).filter(Boolean)).size;
 }

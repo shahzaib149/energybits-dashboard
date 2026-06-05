@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { metaAnalytics } from "@/lib/meta-analytics/client";
 import { COPY } from "@/lib/copy";
 import { isMetaAnalyticsConfigured } from "@/lib/meta-analytics/env";
-import { latestDay, uniqueAdCount, uniqueCampaignCount } from "@/lib/meta-analytics/metrics";
+import { deduplicateCampaignRows, latestDay, uniqueAdCount, uniqueCampaignCount } from "@/lib/meta-analytics/metrics";
 import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { MetaHeader } from "@/components/meta-analytics/MetaHeader";
 import { TopMetricsRow } from "@/components/meta-analytics/TopMetricsRow";
@@ -56,14 +56,16 @@ export default async function MetaAnalyticsPage({
   );
 
   try {
-    const [campaigns, ads] = await Promise.all([
+    const [rawCampaigns, ads] = await Promise.all([
       metaAnalytics.getCampaigns(undefined, dateRange),
       metaAnalytics.getAdInsights(undefined, dateRange)
     ]);
 
-    // Use ads (daily insight records) as the primary "last updated" source — their
-    // dateStart is the actual data day, unlike campaign dateStart which is campaign launch date.
-    const lastUpdated = latestDay(ads) ?? latestDay(campaigns);
+    // Remove duplicate records — Make.com occasionally syncs the same campaign/day twice.
+    // Deduplicating here ensures every metric (spend, clicks, impressions) is accurate.
+    const campaigns = deduplicateCampaignRows(rawCampaigns);
+
+    const lastUpdated = latestDay(campaigns);
     const accountName = ads[0]?.accountName ?? null;
 
     return (
@@ -77,7 +79,7 @@ export default async function MetaAnalyticsPage({
           dataBounds={dataBounds}
           dateRangePicker={dateRangePicker}
         />
-        <TopMetricsRow ads={ads} />
+        <TopMetricsRow campaigns={campaigns} />
 
         <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
           <TabsNav activeTab={activeTab} />

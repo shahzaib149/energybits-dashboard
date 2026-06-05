@@ -1,39 +1,31 @@
-import type { MetaAdInsightRow } from "@/lib/meta-analytics/types";
+import type { MetaCampaignRow } from "@/lib/meta-analytics/types";
 import { COPY } from "@/lib/copy";
 import {
   sumClicks,
   sumImpressions,
   sumReach,
-  sumSpend
+  sumSpend,
+  weightedCpc,
+  weightedCpm,
+  weightedCtrPct
 } from "@/lib/meta-analytics/metrics";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/utils/format";
 import { DollarSign, Eye, MousePointerClick, Percent, Target, Users } from "lucide-react";
 
-function computeCtrPct(clicks: number, impressions: number): number {
-  return impressions > 0 ? (clicks / impressions) * 100 : 0;
-}
-function computeCpc(spend: number, clicks: number): number {
-  return clicks > 0 ? spend / clicks : 0;
-}
-function computeCpm(spend: number, impressions: number): number {
-  return impressions > 0 ? (spend / impressions) * 1000 : 0;
-}
-
-/** Uses daily ad-insight rows so totals reflect the selected date range, not campaign lifetimes. */
-export function TopMetricsRow({ ads }: { ads: MetaAdInsightRow[] }) {
+/**
+ * Uses deduplicated campaign rows (one record per campaign per day).
+ * Spend, clicks, and impressions are summed across all matching daily records —
+ * these numbers match the selected date range because each row is a single day's snapshot.
+ */
+export function TopMetricsRow({ campaigns }: { campaigns: MetaCampaignRow[] }) {
   const m = COPY.metaAnalytics.metrics;
-
-  const spend = sumSpend(ads);
-  const impressions = sumImpressions(ads);
-  const clicks = sumClicks(ads);
-  const reach = sumReach(ads);
 
   return (
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
       <MetricCard
         label={m.totalSpend.label}
-        value={formatCurrency(spend)}
+        value={formatCurrency(sumSpend(campaigns))}
         icon={DollarSign}
         tooltip={m.totalSpend.tooltip}
         description={m.totalSpend.description}
@@ -41,38 +33,38 @@ export function TopMetricsRow({ ads }: { ads: MetaAdInsightRow[] }) {
       />
       <MetricCard
         label={m.impressions.label}
-        value={formatNumber(impressions)}
+        value={formatNumber(sumImpressions(campaigns))}
         icon={Eye}
         tooltip={m.impressions.tooltip}
         description={m.impressions.description}
       />
       <MetricCard
         label={m.clicks.label}
-        value={formatNumber(clicks)}
+        value={formatNumber(sumClicks(campaigns))}
         icon={MousePointerClick}
         tooltip={m.clicks.tooltip}
         description={m.clicks.description}
       />
       <MetricCard
         label={m.reach.label}
-        value={formatNumber(reach)}
+        value={formatNumber(sumReach(campaigns))}
         icon={Users}
         tooltip={m.reach.tooltip}
         description={m.reach.description}
       />
       <MetricCard
         label={m.ctr.label}
-        value={formatPercent(computeCtrPct(clicks, impressions))}
+        value={formatPercent(weightedCtrPct(campaigns))}
         icon={Percent}
         tooltip={m.ctr.tooltip}
         description={m.ctr.description}
       />
       <MetricCard
         label={m.cpc.label}
-        value={formatCurrency(computeCpc(spend, clicks))}
+        value={formatCurrency(weightedCpc(campaigns))}
         icon={Target}
         tooltip={m.cpc.tooltip}
-        description={`CPM ${formatCurrency(computeCpm(spend, impressions))}`}
+        description={`CPM ${formatCurrency(weightedCpm(campaigns))}`}
       />
     </section>
   );
