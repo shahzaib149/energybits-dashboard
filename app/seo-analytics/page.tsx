@@ -6,7 +6,7 @@ import { getServerUser } from "@/lib/auth/getServerUser";
 import { permissions } from "@/lib/auth/permissions";
 import { isSEOAnalyticsConfigured } from "@/lib/seo-analytics/env";
 import { latestEndDate } from "@/lib/seo-analytics/metrics";
-import { parseDateRange } from "@/lib/date-range/parse";
+import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { SEOAnalyticsHeader } from "@/components/seo-analytics/SEOAnalyticsHeader";
 import { TopMetricsRow } from "@/components/seo-analytics/TopMetricsRow";
 import { TabsNav, type SEOTabId } from "@/components/seo-analytics/TabsNav";
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   description: COPY.seoAnalytics.meta.description
 };
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 function parseTab(tab?: string): SEOTabId {
   if (tab === "pages" || tab === "sources") return tab;
@@ -46,14 +46,15 @@ export default async function SEOAnalyticsPage({
     );
   }
 
-  const { range: dateRange, invalid: showInvalidToast } = parseDateRange(searchParams);
+  const dataBounds = await airtable.getDataBounds();
+  const { range: dateRange, invalid: showInvalidToast } = parseDateRangeWithBounds(searchParams, dataBounds);
   const activeTab = parseTab(searchParams.tab);
   const user = await getServerUser();
   const canEditGSCStatus = user !== null && permissions.canToggleGSCStatus(user.role);
 
   const dateRangePicker = (
     <Suspense fallback={<div className="h-8 w-28 animate-pulse rounded-full bg-surfaceElevated" />}>
-      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} />
+      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} dataBounds={dataBounds} />
     </Suspense>
   );
 
@@ -79,6 +80,7 @@ export default async function SEOAnalyticsPage({
           lastUpdated={lastUpdated}
           totalKeywords={keywords.length}
           dateRange={dateRange}
+          dataBounds={dataBounds}
           dateRangePicker={dateRangePicker}
         />
         <TopMetricsRow keywords={keywords} pages={pages} />

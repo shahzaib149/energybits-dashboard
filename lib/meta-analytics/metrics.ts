@@ -131,6 +131,32 @@ export function aggregateAdsById(rows: MetaAdInsightRow[]): MetaAggregatedRow[] 
     .sort((a, b) => b.spend - a.spend);
 }
 
+/** Groups daily ad-insight records by date — use this for accurate period trend charts. */
+export function aggregateAdsByDay(rows: MetaAdInsightRow[]): MetaDailyTrendRow[] {
+  const map = new Map<string, SumBucket>();
+
+  for (const row of rows) {
+    const day = row.dateStart || "Unknown";
+    const existing = map.get(day) ?? emptyBucket();
+    existing.clicks += row.clicks;
+    existing.impressions += row.impressions;
+    existing.reach += row.reach;
+    existing.spend += row.spend;
+    existing.recordCount += 1;
+    map.set(day, existing);
+  }
+
+  return Array.from(map.entries())
+    .map(([day, bucket]) => ({
+      day,
+      spend: bucket.spend,
+      clicks: bucket.clicks,
+      impressions: bucket.impressions,
+      reach: bucket.reach
+    }))
+    .sort((a, b) => a.day.localeCompare(b.day));
+}
+
 export function aggregateCampaignsByDay(rows: MetaCampaignRow[]): MetaDailyTrendRow[] {
   const map = new Map<string, SumBucket>();
 

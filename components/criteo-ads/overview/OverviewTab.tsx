@@ -15,7 +15,7 @@ import type { CriteoDailyRow, CriteoOverallRow } from "@/lib/criteo-ads/types";
 import { COPY } from "@/lib/copy";
 import { aggregateByDay, aggregateByField, buildCostBreakdown, campaignColor } from "@/lib/criteo-ads/metrics";
 import { CRITEO_CHART_COLORS, criteoChartAxisProps } from "@/components/criteo-ads/chartTheme";
-import { OverallSummaryPanel } from "@/components/criteo-ads/TopMetricsRow";
+import { OverallSummaryPanel, PeriodSummaryPanel } from "@/components/criteo-ads/TopMetricsRow";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { formatCurrency, formatCurrencyCompact, formatDate, formatRoas } from "@/lib/utils/format";
 
@@ -157,12 +157,15 @@ export function OverviewTab({
 }) {
   return (
     <div className="space-y-6">
-      <OverallSummaryPanel overall={overall} />
+      {/* Period-accurate summary — computed from date-filtered daily rows */}
+      <PeriodSummaryPanel daily={daily} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SpendTrendChart daily={daily} />
         <TopCampaignsChart daily={daily} />
       </div>
       <CampaignSpendBreakdown daily={daily} />
+      {/* All-time summary — NOT date-filtered, shown with amber warning */}
+      <OverallSummaryPanel overall={overall} />
     </div>
   );
 }

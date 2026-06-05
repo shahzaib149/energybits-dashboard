@@ -17,7 +17,7 @@ import type {
   GA4SourceRow,
   SEOTrackingRow
 } from "@/lib/airtable/types";
-import type { DateRange } from "@/lib/date-range/types";
+import type { DataBounds, DateRange } from "@/lib/date-range/types";
 import { combineFormulas, endDateInRangeFormula } from "@/lib/date-range/airtable-filter";
 
 const MAX_RECORDS = 1000;
@@ -190,6 +190,31 @@ export class AirtableClient {
       }))
       .sort((a, b) => b.sessions - a.sessions);
   }
+
+  async getDataBounds(): Promise<DataBounds | null> {
+    try {
+      const [oldest, newest] = await Promise.all([
+        this.client.fetchAllPages(SEO.tables.ga4PagePerformance, mapGA4PageRecord, {
+          filterByFormula: 'NOT({End Date} = "")',
+          sort: [{ field: "End Date", direction: "asc" }],
+          maxRecords: 1,
+          noCache: true
+        }),
+        this.client.fetchAllPages(SEO.tables.ga4PagePerformance, mapGA4PageRecord, {
+          filterByFormula: 'NOT({End Date} = "")',
+          sort: [{ field: "End Date", direction: "desc" }],
+          maxRecords: 1,
+          noCache: true
+        })
+      ]);
+      const minDate = oldest[0]?.endDate;
+      const maxDate = newest[0]?.endDate;
+      if (!minDate || !maxDate) return null;
+      return { minDate, maxDate };
+    } catch {
+      return null;
+    }
+  }
 }
 
 let singleton: AirtableClient | null = null;
@@ -235,7 +260,8 @@ export const airtable = {
   getTrafficSources: (...args: Parameters<AirtableClient["getTrafficSources"]>) =>
     getAirtableClient().getTrafficSources(...args),
   getChannelBreakdown: (...args: Parameters<AirtableClient["getChannelBreakdown"]>) =>
-    getAirtableClient().getChannelBreakdown(...args)
+    getAirtableClient().getChannelBreakdown(...args),
+  getDataBounds: () => getAirtableClient().getDataBounds()
 };
 
 /** Spec alias */

@@ -2,7 +2,7 @@ import { AIRTABLE_BASES } from "@/lib/airtable/config/registry";
 import { AirtableBaseTableClient } from "@/lib/airtable/core/base-table-client";
 import { mapDailyRecord, mapOverallRecord } from "@/lib/criteo-ads/map";
 import type { CriteoDailyRow, CriteoOverallRow } from "@/lib/criteo-ads/types";
-import type { DateRange } from "@/lib/date-range/types";
+import type { DataBounds, DateRange } from "@/lib/date-range/types";
 import { criteoAdsDateInRangeFormula } from "@/lib/date-range/airtable-filter";
 
 const { criteo: CRITEO } = AIRTABLE_BASES;
@@ -19,9 +19,7 @@ export class CriteoAdsClient {
   }
 
   private cacheTagsForRange(dateRange?: DateRange): string[] {
-    if (dateRange) {
-      return [`airtable-criteo-ads-${dateRange.from}-${dateRange.to}`];
-    }
+    if (dateRange) return [`airtable-criteo-ads-${dateRange.from}-${dateRange.to}`];
     return ["airtable-criteo-ads"];
   }
 
@@ -42,19 +40,43 @@ export class CriteoAdsClient {
     });
     return rows[0] ?? null;
   }
+
+  async getDataBounds(): Promise<DataBounds | null> {
+    try {
+      const [oldest, newest] = await Promise.all([
+        this.client.fetchAllPages(CRITEO.tables.daily, mapDailyRecord, {
+          filterByFormula: 'NOT({Day} = "")',
+          sort: [{ field: "Day", direction: "asc" }],
+          maxRecords: 1,
+          noCache: true
+        }),
+        this.client.fetchAllPages(CRITEO.tables.daily, mapDailyRecord, {
+          filterByFormula: 'NOT({Day} = "")',
+          sort: [{ field: "Day", direction: "desc" }],
+          maxRecords: 1,
+          noCache: true
+        })
+      ]);
+      const minDate = oldest[0]?.day;
+      const maxDate = newest[0]?.day;
+      if (!minDate || !maxDate) return null;
+      return { minDate, maxDate };
+    } catch {
+      return null;
+    }
+  }
 }
 
 let client: CriteoAdsClient | null = null;
 
 export function getCriteoAdsClient(): CriteoAdsClient {
-  if (!client) {
-    client = new CriteoAdsClient();
-  }
+  if (!client) client = new CriteoAdsClient();
   return client;
 }
 
 export const criteoAds = {
   getDailyAnalytics: (limit?: number, dateRange?: DateRange) =>
     getCriteoAdsClient().getDailyAnalytics(limit, dateRange),
-  getOverallAnalytics: () => getCriteoAdsClient().getOverallAnalytics()
+  getOverallAnalytics: () => getCriteoAdsClient().getOverallAnalytics(),
+  getDataBounds: () => getCriteoAdsClient().getDataBounds()
 };

@@ -75,7 +75,7 @@ export function aggregateByField(
   rows: CriteoDailyRow[],
   field: keyof Pick<CriteoDailyRow, "campaignName" | "ad" | "adsetId">
 ): CriteoAggregatedRow[] {
-  const map = new Map<string, MetricRow & { cpcSum: number; eCpmSum: number; count: number }>();
+  const map = new Map<string, MetricRow>();
 
   for (const row of rows) {
     const label = String(row[field] || "Unknown");
@@ -84,19 +84,13 @@ export function aggregateByField(
       clicks: 0,
       displays: 0,
       salesAllClientAttribution: 0,
-      revenueGeneratedAllClientAttribution: 0,
-      cpcSum: 0,
-      eCpmSum: 0,
-      count: 0
+      revenueGeneratedAllClientAttribution: 0
     };
     existing.advertiserCost += row.advertiserCost;
     existing.clicks += row.clicks;
     existing.displays += row.displays;
     existing.salesAllClientAttribution += row.salesAllClientAttribution;
     existing.revenueGeneratedAllClientAttribution += row.revenueGeneratedAllClientAttribution;
-    existing.cpcSum += row.cpc;
-    existing.eCpmSum += row.eCpm;
-    existing.count += 1;
     map.set(label, existing);
   }
 

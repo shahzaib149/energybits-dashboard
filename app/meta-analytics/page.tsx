@@ -4,7 +4,7 @@ import { metaAnalytics } from "@/lib/meta-analytics/client";
 import { COPY } from "@/lib/copy";
 import { isMetaAnalyticsConfigured } from "@/lib/meta-analytics/env";
 import { latestDay, uniqueAdCount, uniqueCampaignCount } from "@/lib/meta-analytics/metrics";
-import { parseDateRange } from "@/lib/date-range/parse";
+import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { MetaHeader } from "@/components/meta-analytics/MetaHeader";
 import { TopMetricsRow } from "@/components/meta-analytics/TopMetricsRow";
 import { TabsNav, type MetaAnalyticsTabId } from "@/components/meta-analytics/TabsNav";
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   description: COPY.metaAnalytics.meta.description
 };
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 function parseTab(tab?: string): MetaAnalyticsTabId {
   if (tab === "campaigns" || tab === "ads" || tab === "detail") return tab;
@@ -45,12 +45,13 @@ export default async function MetaAnalyticsPage({
     );
   }
 
-  const { range: dateRange, invalid: showInvalidToast } = parseDateRange(searchParams);
+  const dataBounds = await metaAnalytics.getDataBounds();
+  const { range: dateRange, invalid: showInvalidToast } = parseDateRangeWithBounds(searchParams, dataBounds);
   const activeTab = parseTab(searchParams.tab);
 
   const dateRangePicker = (
     <Suspense fallback={<div className="h-8 w-28 animate-pulse rounded-full bg-surfaceElevated" />}>
-      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} />
+      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} dataBounds={dataBounds} />
     </Suspense>
   );
 
@@ -60,7 +61,9 @@ export default async function MetaAnalyticsPage({
       metaAnalytics.getAdInsights(undefined, dateRange)
     ]);
 
-    const lastUpdated = latestDay(campaigns) ?? latestDay(ads);
+    // Use ads (daily insight records) as the primary "last updated" source — their
+    // dateStart is the actual data day, unlike campaign dateStart which is campaign launch date.
+    const lastUpdated = latestDay(ads) ?? latestDay(campaigns);
     const accountName = ads[0]?.accountName ?? null;
 
     return (
@@ -71,13 +74,16 @@ export default async function MetaAnalyticsPage({
           adCount={uniqueAdCount(ads)}
           accountName={accountName}
           dateRange={dateRange}
+          dataBounds={dataBounds}
           dateRangePicker={dateRangePicker}
         />
-        <TopMetricsRow campaigns={campaigns} />
+        <TopMetricsRow ads={ads} />
+
         <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
           <TabsNav activeTab={activeTab} />
         </Suspense>
-        {activeTab === "overview" ? <OverviewTab campaigns={campaigns} /> : null}
+
+        {activeTab === "overview" ? <OverviewTab campaigns={campaigns} ads={ads} /> : null}
         {activeTab === "campaigns" ? <CampaignsTab campaigns={campaigns} dateRange={dateRange} /> : null}
         {activeTab === "ads" ? <AdsTab ads={ads} dateRange={dateRange} /> : null}
         {activeTab === "detail" ? <DetailTab ads={ads} dateRange={dateRange} /> : null}

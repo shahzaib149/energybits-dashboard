@@ -4,7 +4,7 @@ import { klaviyo } from "@/lib/klaviyo/client";
 import { COPY } from "@/lib/copy";
 import { isKlaviyoConfigured } from "@/lib/klaviyo/env";
 import { latestDay, uniqueMetricCount } from "@/lib/klaviyo/metrics";
-import { parseDateRange } from "@/lib/date-range/parse";
+import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { KlaviyoHeader } from "@/components/klaviyo/KlaviyoHeader";
 import { TopMetricsRow } from "@/components/klaviyo/TopMetricsRow";
 import { TabsNav, type KlaviyoTabId } from "@/components/klaviyo/TabsNav";
@@ -20,7 +20,8 @@ export const metadata: Metadata = {
   title: COPY.klaviyo.meta.title,
   description: COPY.klaviyo.meta.description
 };
-export const revalidate = 300;
+
+export const dynamic = "force-dynamic";
 
 function parseTab(tab?: string): KlaviyoTabId {
   if (tab === "metrics" || tab === "records") return tab;
@@ -40,16 +41,19 @@ export default async function KlaviyoAnalyticsPage({
     );
   }
 
-  const { range: dateRange, invalid: showInvalidToast } = parseDateRange(searchParams);
+  const dataBounds = await klaviyo.getDataBounds();
+  const { range: dateRange, invalid: showInvalidToast } = parseDateRangeWithBounds(searchParams, dataBounds);
   const activeTab = parseTab(searchParams.tab);
+
   const dateRangePicker = (
     <Suspense fallback={<div className="h-8 w-28 animate-pulse rounded-full bg-surfaceElevated" />}>
-      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} />
+      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} dataBounds={dataBounds} />
     </Suspense>
   );
 
   try {
     const rows = await klaviyo.getAnalytics(undefined, dateRange);
+
     return (
       <div className="overview-theme mx-auto w-full max-w-[1400px] space-y-6 p-3 sm:space-y-8 sm:p-6 lg:p-8">
         <KlaviyoHeader
@@ -57,12 +61,15 @@ export default async function KlaviyoAnalyticsPage({
           metricCount={uniqueMetricCount(rows)}
           recordCount={rows.length}
           dateRange={dateRange}
+          dataBounds={dataBounds}
           dateRangePicker={dateRangePicker}
         />
         <TopMetricsRow rows={rows} />
+
         <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
           <TabsNav activeTab={activeTab} />
         </Suspense>
+
         {activeTab === "overview" ? <OverviewTab rows={rows} /> : null}
         {activeTab === "metrics" ? <MetricsTab rows={rows} dateRange={dateRange} /> : null}
         {activeTab === "records" ? <RecordsTab rows={rows} dateRange={dateRange} /> : null}
@@ -71,6 +78,7 @@ export default async function KlaviyoAnalyticsPage({
   } catch (err) {
     const message = err instanceof Error ? err.message : COPY.klaviyo.loadError;
     const statusCode = err instanceof AirtableAPIError ? err.status : 500;
+
     return (
       <div className="overview-theme mx-auto max-w-[1400px] p-6 lg:p-8">
         <ErrorState title={COPY.klaviyo.loadError} message={message} statusCode={statusCode} />

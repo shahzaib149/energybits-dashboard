@@ -4,7 +4,7 @@ import { googleAds } from "@/lib/google-ads/client";
 import { COPY } from "@/lib/copy";
 import { isGoogleAdsConfigured } from "@/lib/google-ads/env";
 import { latestPulledAt } from "@/lib/google-ads/metrics";
-import { parseDateRange } from "@/lib/date-range/parse";
+import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { GoogleAdsHeader } from "@/components/google-ads/GoogleAdsHeader";
 import { TopMetricsRow } from "@/components/google-ads/TopMetricsRow";
 import { TabsNav, type GoogleAdsTabId } from "@/components/google-ads/TabsNav";
@@ -22,7 +22,8 @@ export const metadata: Metadata = {
   description: COPY.googleAds.meta.description
 };
 
-export const revalidate = 300;
+// Always render fresh — ensures the dashboard reflects the latest Make.com sync
+export const dynamic = "force-dynamic";
 
 function parseTab(tab?: string): GoogleAdsTabId {
   if (tab === "ad-groups" || tab === "creatives" || tab === "keywords") return tab;
@@ -45,12 +46,25 @@ export default async function GoogleAdsAnalyticsPage({
     );
   }
 
-  const { range: dateRange, invalid: showInvalidToast } = parseDateRange(searchParams);
+  // Fetch actual data bounds first (always fresh, no cache).
+  // This tells us the real min/max date in Airtable so the filter never
+  // shows "Last 28 days" anchored to today when today's data doesn't exist yet.
+  const dataBounds = await googleAds.getDataBounds();
+
+  const { range: dateRange, invalid: showInvalidToast } = parseDateRangeWithBounds(
+    searchParams,
+    dataBounds
+  );
+
   const activeTab = parseTab(searchParams.tab);
 
   const dateRangePicker = (
     <Suspense fallback={<div className="h-8 w-28 animate-pulse rounded-full bg-surfaceElevated" />}>
-      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} />
+      <DateRangePicker
+        current={dateRange}
+        showInvalidToast={showInvalidToast}
+        dataBounds={dataBounds}
+      />
     </Suspense>
   );
 
@@ -72,6 +86,7 @@ export default async function GoogleAdsAnalyticsPage({
           campaignCount={campaigns.length}
           accountName={accountName}
           dateRange={dateRange}
+          dataBounds={dataBounds}
           dateRangePicker={dateRangePicker}
         />
         <TopMetricsRow campaigns={campaigns} />

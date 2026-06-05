@@ -4,7 +4,7 @@ import { criteoAds } from "@/lib/criteo-ads/client";
 import { COPY } from "@/lib/copy";
 import { isCriteoAdsConfigured } from "@/lib/criteo-ads/env";
 import { latestDay, uniqueCampaignCount } from "@/lib/criteo-ads/metrics";
-import { parseDateRange } from "@/lib/date-range/parse";
+import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { CriteoAdsHeader } from "@/components/criteo-ads/CriteoAdsHeader";
 import { TopMetricsRow } from "@/components/criteo-ads/TopMetricsRow";
 import { TabsNav, type CriteoAdsTabId } from "@/components/criteo-ads/TabsNav";
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   description: COPY.criteoAds.meta.description
 };
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 function parseTab(tab?: string): CriteoAdsTabId {
   if (tab === "campaigns" || tab === "ads" || tab === "daily") return tab;
@@ -45,12 +45,13 @@ export default async function CriteoAdsAnalyticsPage({
     );
   }
 
-  const { range: dateRange, invalid: showInvalidToast } = parseDateRange(searchParams);
+  const dataBounds = await criteoAds.getDataBounds();
+  const { range: dateRange, invalid: showInvalidToast } = parseDateRangeWithBounds(searchParams, dataBounds);
   const activeTab = parseTab(searchParams.tab);
 
   const dateRangePicker = (
     <Suspense fallback={<div className="h-8 w-28 animate-pulse rounded-full bg-surfaceElevated" />}>
-      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} />
+      <DateRangePicker current={dateRange} showInvalidToast={showInvalidToast} dataBounds={dataBounds} />
     </Suspense>
   );
 
@@ -70,6 +71,7 @@ export default async function CriteoAdsAnalyticsPage({
           campaignCount={campaignCount}
           recordCount={daily.length}
           dateRange={dateRange}
+          dataBounds={dataBounds}
           dateRangePicker={dateRangePicker}
         />
         <TopMetricsRow daily={daily} />

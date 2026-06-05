@@ -11,10 +11,10 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import type { MetaCampaignRow } from "@/lib/meta-analytics/types";
+import type { MetaAdInsightRow, MetaCampaignRow } from "@/lib/meta-analytics/types";
 import { COPY } from "@/lib/copy";
 import {
-  aggregateCampaignsByDay,
+  aggregateAdsByDay,
   aggregateCampaignsById,
   buildSpendBreakdown,
   campaignColor
@@ -27,9 +27,10 @@ function truncateLabel(label: string, max = 28): string {
   return label.length > max ? `${label.slice(0, max)}…` : label;
 }
 
-export function SpendTrendChart({ campaigns }: { campaigns: MetaCampaignRow[] }) {
+/** Daily spend trend — uses facebook_ads_insights rows (one per ad per day) for accuracy. */
+export function SpendTrendChart({ ads }: { ads: MetaAdInsightRow[] }) {
   const copy = COPY.metaAnalytics.overview.spendTrend;
-  const data = aggregateCampaignsByDay(campaigns).map((row) => ({
+  const data = aggregateAdsByDay(ads).map((row) => ({
     ...row,
     label: formatDate(row.day)
   }));
@@ -153,8 +154,14 @@ export function SpendBreakdownPanel({ campaigns }: { campaigns: MetaCampaignRow[
   );
 }
 
-export function OverviewTab({ campaigns }: { campaigns: MetaCampaignRow[] }) {
-  if (campaigns.length === 0) {
+export function OverviewTab({
+  campaigns,
+  ads
+}: {
+  campaigns: MetaCampaignRow[];
+  ads: MetaAdInsightRow[];
+}) {
+  if (campaigns.length === 0 && ads.length === 0) {
     return (
       <section className="rounded-xl border border-border bg-surface p-6">
         <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
@@ -164,7 +171,7 @@ export function OverviewTab({ campaigns }: { campaigns: MetaCampaignRow[] }) {
 
   return (
     <div className="space-y-6">
-      <SpendTrendChart campaigns={campaigns} />
+      <SpendTrendChart ads={ads} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TopCampaignsChart campaigns={campaigns} />
         <SpendBreakdownPanel campaigns={campaigns} />
