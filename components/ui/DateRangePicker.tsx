@@ -139,7 +139,7 @@ export function DateRangePicker({ current, showInvalidToast, dataBounds }: DateR
                 onClick={() => selectPreset(preset)}
                 className="flex w-full items-center justify-between px-3 py-2 text-left text-xs text-textPrimary hover:bg-surface"
               >
-                <span>{copy.presets[preset]}</span>
+                <span>{copy.presets[preset as keyof typeof copy.presets]}</span>
                 {!isCustomActive && current.preset === preset ? (
                   <Check className="h-3.5 w-3.5 text-brand" aria-hidden />
                 ) : null}

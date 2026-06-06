@@ -36,7 +36,7 @@ function subtractDays(d: Date, days: number): Date {
 export function dateRangeFromDays(days: number): DateRange {
   const today = todayLocal();
   const from = subtractDays(today, days);
-  const preset = days === 7 ? "7d" : days === 28 ? "28d" : days === 90 ? "90d" : "custom";
+  const preset = days === 7 ? "7d" : days === 14 ? "14d" : days === 21 ? "21d" : days === 28 ? "28d" : "custom";
   return {
     preset,
     from: formatYYYYMMDD(from),
