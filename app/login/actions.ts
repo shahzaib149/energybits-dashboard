@@ -55,17 +55,21 @@ export async function signInAction(_prev: SignInState, formData: FormData): Prom
     };
   }
 
-  const { data: profile } = data.user
-    ? await supabase
-        .from("profiles")
-        .select("role, email, full_name")
-        .eq("id", data.user.id)
-        .maybeSingle()
-        .catch(() => ({ data: null }))
-    : { data: null };
+  const userId = data.user?.id;
+  if (!userId) {
+    redirect("/account-not-provisioned");
+  }
+
+  const { data: profile } = await Promise.resolve(
+    supabase
+      .from("profiles")
+      .select("role, email, full_name")
+      .eq("id", userId)
+      .maybeSingle()
+  ).catch(() => ({ data: null }));
 
   void logAuditEvent({
-    userId: data.user.id,
+    userId,
     userEmail: profile?.email ?? email,
     action: "auth.login",
     metadata: { method: "password" },

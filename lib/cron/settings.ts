@@ -30,12 +30,14 @@ export async function getCronSettings(): Promise<CronSettings> {
   const supabase = createServiceRoleClient();
   if (supabase) {
     const result = await withTimeout(
-      supabase
-        .from("cron_settings")
-        .select("enabled, last_run_at, last_run_status, last_run_gap_count, last_run_error")
-        .eq("id", 1)
-        .single()
-        .then(({ data, error }) => (error || !data ? null : (data as CronSettings))),
+      Promise.resolve(
+        supabase
+          .from("cron_settings")
+          .select("enabled, last_run_at, last_run_status, last_run_gap_count, last_run_error")
+          .eq("id", 1)
+          .single()
+          .then(({ data, error }) => (error || !data ? null : (data as CronSettings)))
+      ),
       SUPABASE_TIMEOUT_MS
     );
     if (result) {
@@ -58,10 +60,12 @@ export async function updateCronSettings(
   if (!supabase) return;
 
   await withTimeout(
-    supabase
-      .from("cron_settings")
-      .upsert({ id: 1, ...updates, updated_at: new Date().toISOString() }, { onConflict: "id" })
-      .then(() => true),
+    Promise.resolve(
+      supabase
+        .from("cron_settings")
+        .upsert({ id: 1, ...updates, updated_at: new Date().toISOString() }, { onConflict: "id" })
+        .then(() => true)
+    ),
     SUPABASE_TIMEOUT_MS
   );
 }
