@@ -504,6 +504,20 @@ export const COPY = {
     },
     filters: {
       all: "All statuses"
+    },
+    submitCta: "Submit topic",
+    submitModal: {
+      title: "Submit a blog topic",
+      subtitle: "Enter your blog title and we'll automatically match the best keyword and AI search prompt.",
+      titleLabel: "Blog title",
+      titlePlaceholder: "e.g. Can Spirulina Help With Weight Loss?",
+      autoHint: "The best matching keyword and AEO prompt will be selected automatically.",
+      submit: "Submit topic",
+      submitting: "Submitting…",
+      successMessage: "Topic submitted and workflow triggered.",
+      errorGeneric: "Something went wrong. Please try again.",
+      tryAgain: "Try again",
+      done: "Close"
     }
   },
   googleAds: {

@@ -11,10 +11,11 @@ type SumBucket = {
   reach: number;
   spend: number;
   recordCount: number;
+  adLink: string;
 };
 
 function emptyBucket(): SumBucket {
-  return { clicks: 0, impressions: 0, reach: 0, spend: 0, recordCount: 0 };
+  return { clicks: 0, impressions: 0, reach: 0, spend: 0, recordCount: 0, adLink: "" };
 }
 
 function computeCtrPct(clicks: number, impressions: number): number {
@@ -36,6 +37,7 @@ function toAggregated(id: string, label: string, bucket: SumBucket): MetaAggrega
   return {
     id,
     label,
+    adLink: bucket.adLink,
     clicks: bucket.clicks,
     impressions: bucket.impressions,
     reach: bucket.reach,
@@ -138,6 +140,7 @@ export function aggregateAdsById(rows: MetaAdInsightRow[]): MetaAggregatedRow[] 
     existing.spend += row.spend;
     existing.recordCount += 1;
     if (row.adName) existing.label = row.adName;
+    if (row.adLink && !existing.adLink) existing.adLink = row.adLink;
     map.set(key, existing);
   }
 

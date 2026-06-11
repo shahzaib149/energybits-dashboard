@@ -21,8 +21,6 @@ export const metadata: Metadata = {
   description: COPY.klaviyo.meta.description
 };
 
-export const dynamic = "force-dynamic";
-
 function parseTab(tab?: string): KlaviyoTabId {
   if (tab === "metrics" || tab === "records") return tab;
   return "overview";
@@ -81,7 +79,7 @@ export default async function KlaviyoAnalyticsPage({
 
     return (
       <div className="overview-theme mx-auto max-w-[1400px] p-6 lg:p-8">
-        <ErrorState title={COPY.klaviyo.loadError} message={message} statusCode={statusCode} />
+        <ErrorState title={COPY.klaviyo.loadError} message={message} statusCode={statusCode} showRetry />
       </div>
     );
   }

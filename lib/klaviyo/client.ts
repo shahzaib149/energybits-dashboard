@@ -34,13 +34,13 @@ export class KlaviyoClient {
           filterByFormula: 'NOT({Date} = "")',
           sort: [{ field: "Date", direction: "asc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-klaviyo-bounds"]
         }),
         this.client.fetchAllPages(KLAVIYO.tables.analytics, mapKlaviyoRecord, {
           filterByFormula: 'NOT({Date} = "")',
           sort: [{ field: "Date", direction: "desc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-klaviyo-bounds"]
         })
       ]);
       const minDate = oldest[0]?.date;

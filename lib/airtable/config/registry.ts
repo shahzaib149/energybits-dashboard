@@ -60,7 +60,8 @@ export const AIRTABLE_BASES = {
     id: "appT4Zh37Im2Ks4Lh",
     tables: {
       campaigns: "Meta Campaign Analytics",
-      adInsights: "facebook_ads_insights"
+      adInsights: "facebook_ads_insights",
+      adPreview: "ad_preview"
     }
   }
 } as const;

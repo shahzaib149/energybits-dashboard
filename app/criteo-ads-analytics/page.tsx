@@ -22,8 +22,6 @@ export const metadata: Metadata = {
   description: COPY.criteoAds.meta.description
 };
 
-export const dynamic = "force-dynamic";
-
 function parseTab(tab?: string): CriteoAdsTabId {
   if (tab === "campaigns" || tab === "ads" || tab === "daily") return tab;
   return "overview";
@@ -92,7 +90,7 @@ export default async function CriteoAdsAnalyticsPage({
 
     return (
       <div className="overview-theme mx-auto max-w-[1400px] p-6 lg:p-8">
-        <ErrorState title={COPY.criteoAds.loadError} message={message} statusCode={statusCode} />
+        <ErrorState title={COPY.criteoAds.loadError} message={message} statusCode={statusCode} showRetry />
       </div>
     );
   }

@@ -1,5 +1,6 @@
 .next
 node_modules
+.cron-cache.json
 .env.local
 .env.production
 .env*.local

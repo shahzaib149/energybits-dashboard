@@ -23,8 +23,6 @@ export const metadata: Metadata = {
   description: COPY.seoAnalytics.meta.description
 };
 
-export const dynamic = "force-dynamic";
-
 function parseTab(tab?: string): SEOTabId {
   if (tab === "pages" || tab === "sources") return tab;
   return "search";
@@ -49,7 +47,12 @@ export default async function SEOAnalyticsPage({
   const dataBounds = await airtable.getDataBounds();
   const { range: dateRange, invalid: showInvalidToast } = parseDateRangeWithBounds(searchParams, dataBounds);
   const activeTab = parseTab(searchParams.tab);
-  const user = await getServerUser();
+  let user = null;
+  try {
+    user = await getServerUser();
+  } catch {
+    // Supabase unreachable — degrade gracefully (read-only mode)
+  }
   const canEditGSCStatus = user !== null && permissions.canToggleGSCStatus(user.role);
 
   const dateRangePicker = (
@@ -118,7 +121,7 @@ export default async function SEOAnalyticsPage({
 
     return (
       <div className="overview-theme mx-auto max-w-[1400px] p-6 lg:p-8">
-        <ErrorState title={COPY.seoAnalytics.loadError} message={message} statusCode={statusCode} />
+        <ErrorState title={COPY.seoAnalytics.loadError} message={message} statusCode={statusCode} showRetry />
       </div>
     );
   }

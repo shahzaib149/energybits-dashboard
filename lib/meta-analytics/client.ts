@@ -27,13 +27,59 @@ export class MetaAnalyticsClient {
     return limit ? rows.slice(0, limit) : rows;
   }
 
+  private async getAdPreviewMap(): Promise<Map<string, string>> {
+    try {
+      const records = await this.client.fetchAllPages(
+        META.tables.adPreview,
+        (r) => ({ adId: String(r.fields.ad_id ?? "").trim(), adLink: String(r.fields.ad_link ?? "").trim() }),
+        { cacheTags: ["airtable-meta-ad-preview"] }
+      );
+      const map = new Map<string, string>();
+      for (const { adId, adLink } of records) {
+        if (adId && adLink) map.set(adId, adLink);
+      }
+      return map;
+    } catch {
+      return new Map();
+    }
+  }
+
+  private mergeAdLinks(rows: MetaAdInsightRow[], previewMap: Map<string, string>): MetaAdInsightRow[] {
+    if (previewMap.size === 0) return rows;
+    return rows.map((row) => ({
+      ...row,
+      adLink: previewMap.get(row.adId) || row.adLink || ""
+    }));
+  }
+
+  /** Fetch all ad-insight records for a single ad name (for the detail page). */
+  async getAdInsightsByName(adName: string): Promise<MetaAdInsightRow[]> {
+    const escaped = adName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    // Airtable column has a typo: the actual field is "add name" (double-d)
+    const filter = `{add name} = "${escaped}"`;
+    const [rows, previewMap] = await Promise.all([
+      this.client.fetchAllPages(META.tables.adInsights, mapMetaAdInsightRecord, {
+        filterByFormula: filter,
+        sort: [{ field: "date_start", direction: "desc" }],
+        noCache: true
+      }),
+      this.getAdPreviewMap()
+    ]);
+    return this.mergeAdLinks(rows, previewMap);
+  }
+
   async getAdInsights(limit?: number, dateRange?: DateRange): Promise<MetaAdInsightRow[]> {
-    const rows = await this.client.fetchAllPages(META.tables.adInsights, mapMetaAdInsightRecord, {
-      filterByFormula: dateRange ? metaAdInsightsDateInRangeFormula(dateRange) : undefined,
-      sort: [{ field: "date_start", direction: "desc" }],
-      cacheTags: dateRange ? [`airtable-meta-ads-${dateRange.from}-${dateRange.to}`] : ["airtable-meta-ads"]
-    });
-    return limit ? rows.slice(0, limit) : rows;
+    const cacheTags = dateRange ? [`airtable-meta-ads-${dateRange.from}-${dateRange.to}`] : ["airtable-meta-ads"];
+    const [rows, previewMap] = await Promise.all([
+      this.client.fetchAllPages(META.tables.adInsights, mapMetaAdInsightRecord, {
+        filterByFormula: dateRange ? metaAdInsightsDateInRangeFormula(dateRange) : undefined,
+        sort: [{ field: "date_start", direction: "desc" }],
+        cacheTags
+      }),
+      this.getAdPreviewMap()
+    ]);
+    const merged = this.mergeAdLinks(rows, previewMap);
+    return limit ? merged.slice(0, limit) : merged;
   }
 
   /**
@@ -47,46 +93,26 @@ export class MetaAnalyticsClient {
    */
   async getDataBounds(): Promise<DataBounds | null> {
     try {
-      const [adOldest, adNewest, campOldest, campNewest] = await Promise.all([
-        // Ad insights: earliest daily record
-        this.client.fetchAllPages(META.tables.adInsights, mapMetaAdInsightRecord, {
-          filterByFormula: 'NOT({date_start} = "")',
-          sort: [{ field: "date_start", direction: "asc" }],
-          maxRecords: 1,
-          noCache: true
-        }),
-        // Ad insights: latest daily record
-        this.client.fetchAllPages(META.tables.adInsights, mapMetaAdInsightRecord, {
-          filterByFormula: 'NOT({date_start} = "")',
-          sort: [{ field: "date_start", direction: "desc" }],
-          maxRecords: 1,
-          noCache: true
-        }),
-        // Campaigns: earliest campaign start
+      // Use campaigns table only (much smaller) — avoids concurrent reads on the large
+      // facebook_ads_insights table which causes timeouts when other queries are in flight.
+      const [oldest, newest] = await Promise.all([
         this.client.fetchAllPages(META.tables.campaigns, mapMetaCampaignRecord, {
           filterByFormula: 'NOT({Date Start} = "")',
           sort: [{ field: "Date Start", direction: "asc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-meta-bounds"]
         }),
-        // Campaigns: latest campaign end (Date Stop) — often the most recent date
         this.client.fetchAllPages(META.tables.campaigns, mapMetaCampaignRecord, {
           filterByFormula: 'NOT({Date Stop} = "")',
           sort: [{ field: "Date Stop", direction: "desc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-meta-bounds"]
         })
       ]);
 
-      // Collect all non-empty candidates for each bound
-      const minCandidates = [adOldest[0]?.dateStart, campOldest[0]?.dateStart].filter(Boolean) as string[];
-      const maxCandidates = [adNewest[0]?.dateStart, campNewest[0]?.dateStop].filter(Boolean) as string[];
-
-      if (minCandidates.length === 0 || maxCandidates.length === 0) return null;
-
-      const minDate = minCandidates.sort()[0];                        // earliest
-      const maxDate = maxCandidates.sort().reverse()[0];              // latest
-
+      const minDate = oldest[0]?.dateStart;
+      const maxDate = newest[0]?.dateStop;
+      if (!minDate || !maxDate) return null;
       return { minDate, maxDate };
     } catch {
       return null;
@@ -106,5 +132,7 @@ export const metaAnalytics = {
     getMetaAnalyticsClient().getCampaigns(limit, dateRange),
   getAdInsights: (limit?: number, dateRange?: DateRange) =>
     getMetaAnalyticsClient().getAdInsights(limit, dateRange),
+  getAdInsightsByName: (adName: string) =>
+    getMetaAnalyticsClient().getAdInsightsByName(adName),
   getDataBounds: () => getMetaAnalyticsClient().getDataBounds()
 };

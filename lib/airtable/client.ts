@@ -19,6 +19,8 @@ import type {
 } from "@/lib/airtable/types";
 import type { DataBounds, DateRange } from "@/lib/date-range/types";
 import { combineFormulas, endDateInRangeFormula } from "@/lib/date-range/airtable-filter";
+import { mapBlogKeyword, mapAEOPrompt } from "@/lib/blog-pipeline/submit-types";
+import type { BlogKeyword, AEOPrompt } from "@/lib/blog-pipeline/submit-types";
 
 const MAX_RECORDS = 1000;
 const { seo: SEO } = AIRTABLE_BASES;
@@ -97,6 +99,18 @@ export class AirtableClient {
 
   async deleteBlogTopic(recordId: string): Promise<void> {
     await this.client.deleteRecord(SEO.tables.blogPipeline, recordId);
+  }
+
+  async createBlogTopic(fields: Record<string, unknown>): Promise<{ id: string; fields: Record<string, unknown> }> {
+    return this.client.createRecord(SEO.tables.blogPipeline, fields);
+  }
+
+  async getKeywordsForBlog(): Promise<BlogKeyword[]> {
+    return this.client.fetchAllPages(SEO.tables.keywords, mapBlogKeyword, { noCache: true });
+  }
+
+  async getAEOPromptsForBlog(): Promise<AEOPrompt[]> {
+    return this.client.fetchAllPages(SEO.tables.aeoPromptOpportunities, mapAEOPrompt, { noCache: true });
   }
 
   async getCriticalKeywords(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
@@ -245,6 +259,12 @@ export const airtable = {
     getAirtableClient().updateBlogTopic(...args),
   deleteBlogTopic: (...args: Parameters<AirtableClient["deleteBlogTopic"]>) =>
     getAirtableClient().deleteBlogTopic(...args),
+  createBlogTopic: (...args: Parameters<AirtableClient["createBlogTopic"]>) =>
+    getAirtableClient().createBlogTopic(...args),
+  getKeywordsForBlog: (...args: Parameters<AirtableClient["getKeywordsForBlog"]>) =>
+    getAirtableClient().getKeywordsForBlog(...args),
+  getAEOPromptsForBlog: (...args: Parameters<AirtableClient["getAEOPromptsForBlog"]>) =>
+    getAirtableClient().getAEOPromptsForBlog(...args),
   getLowCTRKeywords: (...args: Parameters<AirtableClient["getLowCTRKeywords"]>) =>
     getAirtableClient().getLowCTRKeywords(...args),
   getPage2Opportunities: (...args: Parameters<AirtableClient["getPage2Opportunities"]>) =>

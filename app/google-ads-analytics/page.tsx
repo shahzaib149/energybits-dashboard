@@ -22,9 +22,6 @@ export const metadata: Metadata = {
   description: COPY.googleAds.meta.description
 };
 
-// Always render fresh — ensures the dashboard reflects the latest Make.com sync
-export const dynamic = "force-dynamic";
-
 function parseTab(tab?: string): GoogleAdsTabId {
   if (tab === "ad-groups" || tab === "creatives" || tab === "keywords") return tab;
   return "campaigns";
@@ -97,7 +94,7 @@ export default async function GoogleAdsAnalyticsPage({
 
         {activeTab === "campaigns" ? <CampaignsTab campaigns={campaigns} dateRange={dateRange} /> : null}
         {activeTab === "ad-groups" ? <AdGroupsTab adGroups={adGroups} dateRange={dateRange} /> : null}
-        {activeTab === "creatives" ? <CreativesTab creatives={creatives} dateRange={dateRange} /> : null}
+        {activeTab === "creatives" ? <CreativesTab creatives={creatives} campaigns={campaigns} dateRange={dateRange} /> : null}
         {activeTab === "keywords" ? <KeywordsTab keywords={keywords} dateRange={dateRange} /> : null}
       </div>
     );
@@ -107,7 +104,7 @@ export default async function GoogleAdsAnalyticsPage({
 
     return (
       <div className="overview-theme mx-auto max-w-[1400px] p-6 lg:p-8">
-        <ErrorState title={COPY.googleAds.loadError} message={message} statusCode={statusCode} />
+        <ErrorState title={COPY.googleAds.loadError} message={message} statusCode={statusCode} showRetry />
       </div>
     );
   }

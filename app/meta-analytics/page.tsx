@@ -22,8 +22,6 @@ export const metadata: Metadata = {
   description: COPY.metaAnalytics.meta.description
 };
 
-export const dynamic = "force-dynamic";
-
 function parseTab(tab?: string): MetaAnalyticsTabId {
   if (tab === "campaigns" || tab === "ads" || tab === "detail") return tab;
   return "overview";
@@ -97,7 +95,7 @@ export default async function MetaAnalyticsPage({
 
     return (
       <div className="overview-theme mx-auto max-w-[1400px] p-6 lg:p-8">
-        <ErrorState title={COPY.metaAnalytics.loadError} message={message} statusCode={statusCode} />
+        <ErrorState title={COPY.metaAnalytics.loadError} message={message} statusCode={statusCode} showRetry />
       </div>
     );
   }

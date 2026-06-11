@@ -32,9 +32,13 @@ export function SignInForm() {
     formData.set("next", nextPath);
 
     startTransition(async () => {
-      const result = await signInAction(initialState, formData);
-      if (result.error) {
-        setError(result.error);
+      try {
+        const result = await signInAction(initialState, formData);
+        if (result?.error) {
+          setError(result.error);
+        }
+      } catch {
+        setError("Could not reach the server. Please check your connection and try again.");
       }
     });
   }

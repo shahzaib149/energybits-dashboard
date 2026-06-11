@@ -21,8 +21,6 @@ export const metadata: Metadata = {
   description: COPY.vibeAds.meta.description
 };
 
-export const dynamic = "force-dynamic";
-
 function parseTab(tab?: string): VibeAdsTabId {
   if (tab === "campaigns" || tab === "channels" || tab === "creatives" || tab === "detail") return tab;
   return "overview";
@@ -83,7 +81,7 @@ export default async function VibeAdsAnalyticsPage({
 
     return (
       <div className="overview-theme mx-auto max-w-[1400px] p-6 lg:p-8">
-        <ErrorState title={COPY.vibeAds.loadError} message={message} statusCode={statusCode} />
+        <ErrorState title={COPY.vibeAds.loadError} message={message} statusCode={statusCode} showRetry />
       </div>
     );
   }

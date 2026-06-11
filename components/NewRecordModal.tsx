@@ -30,13 +30,10 @@ export function NewRecordModal({
     }
   }, [open]);
 
-  if (!open) {
-    return null;
-  }
+  if (!open) return null;
 
   function handleFieldChange(field: EditableFieldDefinition, value: string) {
     setValues((current) => ({ ...current, [field.field]: value }));
-    // Clear error when user starts typing
     if (errors[field.field]) {
       setErrors((current) => {
         const { [field.field]: _, ...rest } = current;
@@ -46,13 +43,10 @@ export function NewRecordModal({
   }
 
   async function handleSubmit() {
-    // Validate all fields
     const newErrors: Record<string, string> = {};
     fields.forEach((field) => {
       const validation = validateFieldValue(field, values[field.field]);
-      if (!validation.valid) {
-        newErrors[field.field] = validation.error!;
-      }
+      if (!validation.valid) newErrors[field.field] = validation.error!;
     });
 
     if (Object.keys(newErrors).length > 0) {
@@ -62,18 +56,15 @@ export function NewRecordModal({
 
     setSubmitting(true);
     try {
-      // Convert field values to appropriate types
       const convertedValues: Record<string, unknown> = {};
       fields.forEach((field) => {
-        const rawValue = values[field.field];
-        convertedValues[field.field] = convertFieldValue(field, rawValue);
+        convertedValues[field.field] = convertFieldValue(field, values[field.field]);
       });
-
       await onSubmit(convertedValues);
       setValues({});
       setErrors({});
-    } catch (error) {
-      // Error handling is done in the parent component
+    } catch {
+      // Error handling done in parent
     } finally {
       setSubmitting(false);
     }
@@ -84,9 +75,13 @@ export function NewRecordModal({
     void handleSubmit();
   }
 
+  const inputBase =
+    "w-full rounded-lg border bg-surfaceElevated px-4 py-2.5 text-sm text-textPrimary placeholder:text-textMuted outline-none focus:border-brand";
+
   function renderFieldInput(field: EditableFieldDefinition, index: number) {
     const value = String(values[field.field] ?? "");
     const error = errors[field.field];
+    const cls = `${inputBase} ${error ? "border-red-500" : "border-border"}`;
 
     if (field.type === "singleSelect" && field.options) {
       const options = getFieldOptions(field);
@@ -94,16 +89,12 @@ export function NewRecordModal({
         <select
           autoFocus={index === 0}
           value={value}
-          onChange={(event) => handleFieldChange(field, event.target.value)}
-          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-slate-400 ${
-            error ? "border-red-300" : "border-slate-200"
-          }`}
+          onChange={(e) => handleFieldChange(field, e.target.value)}
+          className={cls}
         >
           <option value="">Select {field.label}</option>
           {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
+            <option key={option} value={option}>{option}</option>
           ))}
         </select>
       );
@@ -114,11 +105,9 @@ export function NewRecordModal({
         <textarea
           autoFocus={index === 0}
           value={value}
-          onChange={(event) => handleFieldChange(field, event.target.value)}
+          onChange={(e) => handleFieldChange(field, e.target.value)}
           rows={3}
-          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-slate-400 ${
-            error ? "border-red-300" : "border-slate-200"
-          }`}
+          className={cls}
           placeholder={`Enter ${field.label.toLowerCase()}`}
         />
       );
@@ -128,67 +117,79 @@ export function NewRecordModal({
       <input
         autoFocus={index === 0}
         type={
-          field.type === "number"
-            ? "number"
-            : field.type === "url"
-              ? "url"
-              : field.type === "date"
-                ? "date"
-                : "text"
+          field.type === "number" ? "number"
+          : field.type === "url" ? "url"
+          : field.type === "date" ? "date"
+          : "text"
         }
         value={value}
-        onChange={(event) => handleFieldChange(field, event.target.value)}
-        className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-slate-400 ${
-          error ? "border-red-300" : "border-slate-200"
-        }`}
+        onChange={(e) => handleFieldChange(field, e.target.value)}
+        className={cls}
         placeholder={`Enter ${field.label.toLowerCase()}`}
       />
     );
   }
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-slate-950/40" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
       <form
         onSubmit={handleFormSubmit}
-        className="fixed inset-x-0 bottom-0 top-4 z-50 mx-auto flex w-full max-w-2xl flex-col rounded-t-3xl bg-white shadow-2xl md:inset-0 md:top-auto md:max-h-[min(90vh,48rem)] md:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+        className="flex w-full max-w-lg flex-col rounded-2xl border border-border bg-surface shadow-2xl"
+        style={{ maxHeight: "min(90vh, 44rem)" }}
       >
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+        {/* Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-5">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">New Record</p>
-            <h3 className="text-xl font-semibold text-slate-900">{title}</h3>
+            <p className="text-xs font-medium uppercase tracking-widest text-textMuted">New Record</p>
+            <h3 className="mt-0.5 text-xl font-semibold text-textPrimary">{title}</h3>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 p-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-border p-2 text-textMuted hover:bg-surfaceElevated hover:text-textPrimary"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+
+        {/* Body */}
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
           {fields.map((field, index) => (
             <label key={field.field} className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-700">
+              <span className="mb-1.5 block text-sm font-medium text-textSecondary">
                 {field.label}
-                {field.required && <span className="text-red-500 ml-1">*</span>}
+                {field.required && <span className="ml-1 text-red-500">*</span>}
               </span>
               {renderFieldInput(field, index)}
               {errors[field.field] && (
-                <span className="mt-1 block text-sm text-red-600">{errors[field.field]}</span>
+                <span className="mt-1 block text-xs text-red-400">{errors[field.field]}</span>
               )}
             </label>
           ))}
         </div>
-        <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
-          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">
+
+        {/* Footer */}
+        <div className="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-textSecondary hover:bg-surfaceElevated"
+          >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brandHover disabled:opacity-50"
           >
-            Create Record
+            {submitting ? "Creating…" : "Create Record"}
           </button>
         </div>
       </form>
-    </>
+    </div>
   );
 }

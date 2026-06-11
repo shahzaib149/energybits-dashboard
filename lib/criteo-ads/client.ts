@@ -48,13 +48,13 @@ export class CriteoAdsClient {
           filterByFormula: 'NOT({Day} = "")',
           sort: [{ field: "Day", direction: "asc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-criteo-ads-bounds"]
         }),
         this.client.fetchAllPages(CRITEO.tables.daily, mapDailyRecord, {
           filterByFormula: 'NOT({Day} = "")',
           sort: [{ field: "Day", direction: "desc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-criteo-ads-bounds"]
         })
       ]);
       const minDate = oldest[0]?.day;

@@ -5,18 +5,22 @@ import { getCronSettings, updateCronSettings } from "@/lib/cron/settings";
 
 export const dynamic = "force-dynamic";
 
+// GET is auth-free — the trigger status is not sensitive and auth failures
+// (Supabase DNS outages) must not prevent the card from loading.
 export async function GET() {
-  const user = await getServerUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const settings = await getCronSettings();
   return NextResponse.json(settings);
 }
 
 export async function PATCH(request: NextRequest) {
-  const user = await getServerUser();
+  // PATCH requires admin — wrap auth in try-catch so DNS outages return a clear error
+  let user: Awaited<ReturnType<typeof getServerUser>> = null;
+  try {
+    user = await getServerUser();
+  } catch {
+    return NextResponse.json({ error: "Authentication service unavailable" }, { status: 503 });
+  }
+
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

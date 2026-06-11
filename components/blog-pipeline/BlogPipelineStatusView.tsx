@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { BlogPipelineRow } from "@/lib/airtable/blog-pipeline";
 import { hasProcessingBlogs } from "@/lib/blog-pipeline/processing";
 import { PipelineStatusTable } from "@/components/blog-pipeline/PipelineStatusTable";
+import { SubmitTopicButton } from "@/components/blog-pipeline/SubmitTopicButton";
 import { COPY } from "@/lib/copy";
 
 const POLL_MS = 8_000;
@@ -64,6 +65,7 @@ export function BlogPipelineStatusView({
           >
             {copy.refresh}
           </button>
+          {canEdit && <SubmitTopicButton onSubmitted={() => void refreshRows()} />}
         </div>
       </header>
 

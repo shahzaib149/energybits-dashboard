@@ -55,6 +55,16 @@ export class GoogleAdsClient {
     return limit ? rows.slice(0, limit) : rows;
   }
 
+  /** Fetch all creative records for a single ad name (for the detail page). */
+  async getCreativesByName(adName: string): Promise<GoogleAdsCreativeRow[]> {
+    const escaped = adName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    return this.client.fetchAllPages(GOOGLE_ADS.tables.creatives, mapCreativeRecord, {
+      filterByFormula: `{Ad Name} = "${escaped}"`,
+      sort: [{ field: "Date", direction: "desc" }],
+      noCache: true
+    });
+  }
+
   async getCreatives(limit?: number, dateRange?: DateRange): Promise<GoogleAdsCreativeRow[]> {
     const dateFilter = dateRange ? googleAdsDateInRangeFormula(dateRange) : undefined;
     const rows = await this.client.fetchAllPages(GOOGLE_ADS.tables.creatives, mapCreativeRecord, {
@@ -87,13 +97,13 @@ export class GoogleAdsClient {
           filterByFormula: 'NOT({Date} = "")',
           sort: [{ field: "Date", direction: "asc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-google-ads-bounds"]
         }),
         this.client.fetchAllPages(GOOGLE_ADS.tables.campaigns, mapCampaignRecord, {
           filterByFormula: 'NOT({Date} = "")',
           sort: [{ field: "Date", direction: "desc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-google-ads-bounds"]
         })
       ]);
       const minDate = oldest[0]?.date;
@@ -119,6 +129,7 @@ export const googleAds = {
   getCampaigns: (...args: Parameters<GoogleAdsClient["getCampaigns"]>) => getGoogleAdsClient().getCampaigns(...args),
   getAdGroups: (...args: Parameters<GoogleAdsClient["getAdGroups"]>) => getGoogleAdsClient().getAdGroups(...args),
   getCreatives: (...args: Parameters<GoogleAdsClient["getCreatives"]>) => getGoogleAdsClient().getCreatives(...args),
+  getCreativesByName: (adName: string) => getGoogleAdsClient().getCreativesByName(adName),
   getKeywords: (...args: Parameters<GoogleAdsClient["getKeywords"]>) => getGoogleAdsClient().getKeywords(...args),
   getDataBounds: () => getGoogleAdsClient().getDataBounds()
 };

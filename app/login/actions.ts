@@ -27,11 +27,23 @@ export async function signInAction(_prev: SignInState, formData: FormData): Prom
     return { error: "Email and password are required." };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  let supabase: Awaited<ReturnType<typeof createClient>>;
+  try {
+    supabase = await createClient();
+  } catch {
+    return { error: "Authentication service unavailable. Please try again in a moment." };
+  }
+
+  let data: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>["data"];
+  let error: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>["error"];
+  try {
+    ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
+  } catch {
+    return { error: "Could not reach authentication service. Check your network and try again." };
+  }
 
   if (error) {
-    await logAuditEvent({
+    void logAuditEvent({
       userEmail: email,
       action: "auth.login_failed",
       metadata: { reason: error.message },
@@ -47,9 +59,10 @@ export async function signInAction(_prev: SignInState, formData: FormData): Prom
     .from("profiles")
     .select("role, email, full_name")
     .eq("id", data.user.id)
-    .maybeSingle();
+    .maybeSingle()
+    .catch(() => ({ data: null }));
 
-  await logAuditEvent({
+  void logAuditEvent({
     userId: data.user.id,
     userEmail: profile?.email ?? email,
     action: "auth.login",

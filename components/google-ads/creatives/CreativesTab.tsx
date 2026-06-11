@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { GoogleAdsCreativeRow } from "@/lib/google-ads/types";
+import type { GoogleAdsCampaignRow, GoogleAdsCreativeRow } from "@/lib/google-ads/types";
 import { COPY } from "@/lib/copy";
 import { aggregateByField, buildCostBreakdown } from "@/lib/google-ads/metrics";
 import { ADS_CHART_COLORS, adsChartAxisProps } from "@/components/google-ads/chartTheme";
@@ -20,11 +21,15 @@ function truncateLabel(label: string, max = 36): string {
   return label.length > max ? `${label.slice(0, max)}…` : label;
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function CreativesTab({
   creatives,
+  campaigns,
   dateRange
 }: {
   creatives: GoogleAdsCreativeRow[];
+  campaigns: GoogleAdsCampaignRow[];
   dateRange: DateRange;
 }) {
   const typeCopy = COPY.googleAds.creatives.adType;
@@ -119,9 +124,13 @@ export function CreativesTab({
                 header: "Ad",
                 searchValue: (row) => row.adName,
                 render: (row) => (
-                  <span className="block max-w-[180px] truncate font-medium text-textPrimary" title={row.adName}>
+                  <Link
+                    href={`/google-ads-analytics/creative-detail?name=${encodeURIComponent(row.adName)}`}
+                    className="block max-w-[160px] truncate font-medium text-brand hover:underline"
+                    title={row.adName}
+                  >
                     {row.adName}
-                  </span>
+                  </Link>
                 )
               },
               {
@@ -135,7 +144,7 @@ export function CreativesTab({
                 header: "Campaign",
                 searchValue: (row) => row.campaignName,
                 render: (row) => (
-                  <span className="block max-w-[140px] truncate text-textSecondary" title={row.campaignName}>
+                  <span className="block max-w-[130px] truncate text-textSecondary" title={row.campaignName}>
                     {row.campaignName}
                   </span>
                 )

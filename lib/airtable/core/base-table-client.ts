@@ -6,6 +6,15 @@ import { resolveBaseId } from "@/lib/airtable/meta/resolve-base";
 const DEFAULT_REVALIDATE_SECONDS = 300;
 const DEFAULT_MAX_RECORDS = 2000;
 const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = [500, 1500, 3000]; // backoff between attempts
+
+// Status codes that are safe to retry (transient failures)
+const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export type RecordFetchOpts = {
   filterByFormula?: string;
@@ -80,6 +89,26 @@ export class AirtableBaseTableClient {
     }
   }
 
+  /** Wraps `request` with up to MAX_RETRIES retries for transient failures. */
+  private async requestWithRetry<T>(url: string, opts: { cacheTags?: string[]; noCache?: boolean } = {}): Promise<T> {
+    let lastError: AirtableAPIError | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await this.request<T>(url, opts);
+      } catch (err) {
+        if (!(err instanceof AirtableAPIError)) throw err;
+        if (!RETRYABLE_STATUSES.has(err.status)) throw err; // 401, 403, 404, 422 — don't retry
+        lastError = err;
+        if (attempt < MAX_RETRIES) {
+          await sleep(RETRY_DELAY_MS[attempt] ?? 1000);
+        }
+      }
+    }
+
+    throw lastError!;
+  }
+
   private async buildUrl(tableName: string, opts: RecordFetchOpts = {}): Promise<string> {
     const baseId = await this.getBaseId();
     const url = new URL(tableRecordsPath(baseId, tableName));
@@ -109,7 +138,7 @@ export class AirtableBaseTableClient {
     do {
       const baseUrl = await this.buildUrl(tableName, opts);
       const url = offset ? `${baseUrl}&offset=${encodeURIComponent(offset)}` : baseUrl;
-      const data = await this.request<{ records: Array<{ id: string; fields: Record<string, unknown> }>; offset?: string }>(
+      const data = await this.requestWithRetry<{ records: Array<{ id: string; fields: Record<string, unknown> }>; offset?: string }>(
         url,
         { cacheTags: opts.cacheTags, noCache: opts.noCache }
       );
@@ -172,6 +201,42 @@ export class AirtableBaseTableClient {
     } catch (error) {
       if (error instanceof AirtableAPIError) throw error;
       throw new AirtableAPIError("Airtable patch timed out", 408, url);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async createRecord(
+    tableName: string,
+    fields: Record<string, unknown>
+  ): Promise<{ id: string; fields: Record<string, unknown> }> {
+    const baseId = await this.getBaseId();
+    const url = tableRecordsPath(baseId, tableName);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ fields }),
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new AirtableAPIError(message || "Airtable create failed", response.status, url);
+      }
+
+      return (await response.json()) as { id: string; fields: Record<string, unknown> };
+    } catch (error) {
+      if (error instanceof AirtableAPIError) throw error;
+      throw new AirtableAPIError("Airtable create timed out", 408, url);
     } finally {
       clearTimeout(timeout);
     }

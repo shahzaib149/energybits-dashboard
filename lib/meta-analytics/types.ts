@@ -34,6 +34,8 @@ export interface MetaAdInsightRow {
   adName: string;
   adLink: string;
   clicks: number;
+  qualityRanking: string;
+  engagementRateRanking: string;
   conversionRateRanking: string;
   cpc: number;
   cpm: number;
@@ -57,6 +59,7 @@ export interface MetaAdInsightRow {
 export interface MetaAggregatedRow {
   id: string;
   label: string;
+  adLink: string;
   clicks: number;
   impressions: number;
   reach: number;

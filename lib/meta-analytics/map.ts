@@ -63,6 +63,8 @@ export function mapMetaAdInsightRecord(record: AirtableRecordRaw): MetaAdInsight
     adName: asString(f["ad_name"] ?? f["ad name"] ?? f["add name"]),
     adLink: asString(f["ad_link"] ?? f["ad link"] ?? f["add link"]),
     clicks: asNumber(f.clicks),
+    qualityRanking: asString(f.quality_ranking),
+    engagementRateRanking: asString(f.engagement_rate_ranking),
     conversionRateRanking: asString(f.conversion_rate_ranking),
     cpc: asNumber(f.cpc),
     cpm: asNumber(f.cpm),

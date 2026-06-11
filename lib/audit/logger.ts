@@ -20,7 +20,8 @@ export type AuditAction =
   | "intelligence_auto_triggered"
   | "weekly_report_triggered"
   | "user.invited"
-  | "user.role_changed";
+  | "user.role_changed"
+  | "ad_suggestion.viewed";
 
 export interface AuditLogParams {
   userId?: string;

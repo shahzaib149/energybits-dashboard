@@ -34,13 +34,13 @@ export class VibeAdsClient {
           filterByFormula: 'NOT({impression_date} = "")',
           sort: [{ field: "impression_date", direction: "asc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-vibe-ads-bounds"]
         }),
         this.client.fetchAllPages(VIBE.tables.analytics, mapVibeRecord, {
           filterByFormula: 'NOT({impression_date} = "")',
           sort: [{ field: "impression_date", direction: "desc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-vibe-ads-bounds"]
         })
       ]);
       const minDate = oldest[0]?.impressionDate;
