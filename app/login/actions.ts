@@ -55,12 +55,14 @@ export async function signInAction(_prev: SignInState, formData: FormData): Prom
     };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, email, full_name")
-    .eq("id", data.user.id)
-    .maybeSingle()
-    .catch(() => ({ data: null }));
+  const { data: profile } = data.user
+    ? await supabase
+        .from("profiles")
+        .select("role, email, full_name")
+        .eq("id", data.user.id)
+        .maybeSingle()
+        .catch(() => ({ data: null }))
+    : { data: null };
 
   void logAuditEvent({
     userId: data.user.id,
