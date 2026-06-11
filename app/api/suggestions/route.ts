@@ -56,20 +56,22 @@ async function readCache(
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
   const result = await withTimeout(
-    supabase
-      .from("ad_suggestions_cache")
-      .select("suggestions")
-      .eq("ad_id", adId)
-      .eq("platform", platform)
-      .eq("cache_date", todayString())
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!data?.suggestions || !Array.isArray(data.suggestions)) return null;
-        const normalized = (data.suggestions as CachedRecord[])
-          .map(normalizeFromCache)
-          .filter((s): s is AdSuggestion => s !== null);
-        return normalized.length > 0 ? normalized : null;
-      }),
+    Promise.resolve(
+      supabase
+        .from("ad_suggestions_cache")
+        .select("suggestions")
+        .eq("ad_id", adId)
+        .eq("platform", platform)
+        .eq("cache_date", todayString())
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!data?.suggestions || !Array.isArray(data.suggestions)) return null;
+          const normalized = (data.suggestions as CachedRecord[])
+            .map(normalizeFromCache)
+            .filter((s): s is AdSuggestion => s !== null);
+          return normalized.length > 0 ? normalized : null;
+        })
+    ),
     SUPABASE_TIMEOUT_MS
   );
   return result ?? null;
