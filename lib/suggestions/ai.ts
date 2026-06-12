@@ -6,18 +6,6 @@ function getModel(): string {
   return process.env.SUGGESTIONS_AI_MODEL ?? "claude-haiku-4-5-20251001";
 }
 
-function formatRanking(raw: string): string {
-  if (!raw) return "Insufficient data";
-  const key = raw.trim().toUpperCase();
-  if (key === "ABOVE_AVERAGE") return "Above Average";
-  if (key === "AVERAGE") return "Average";
-  if (key === "BELOW_AVERAGE_10") return "Below Average (bottom 10%)";
-  if (key === "BELOW_AVERAGE_20") return "Below Average (bottom 20%)";
-  if (key === "BELOW_AVERAGE_35") return "Below Average (bottom 35%)";
-  if (key.startsWith("BELOW")) return "Below Average";
-  if (key.startsWith("ABOVE")) return "Above Average";
-  return "Insufficient data";
-}
 
 function buildPrompt(ctx: AdContext, existing: AdSuggestion[]): string {
   const alreadyCovered = existing.length > 0
@@ -29,44 +17,48 @@ function buildPrompt(ctx: AdContext, existing: AdSuggestion[]): string {
     const hasConv     = ctx.purchases > 0 || ctx.formLeads > 0 || ctx.roas > 0;
     const transcript  = ctx.adTranscript ? `\nAD VIDEO ANALYSIS:\n"${ctx.adTranscript.slice(0, 600)}"\nUse this to judge hook quality, value proposition clarity, CTA strength, and tone-audience fit.\n` : "";
 
-    return `You are a Meta ads analyst for ENERGYbits (spirulina/chlorella supplements). Analyze this ad using ONLY the rules below. Do not invent additional rules.
+    return `You are a senior Meta ads strategist for ENERGYbits (spirulina/chlorella supplements). Diagnose this ad using the funnel framework: Attention → Retention → Click → Fatigue → Conversion → Efficiency.
 
 AD: "${ctx.adName}"
 
 METRICS:
-${hasVideo ? `Hook rate: ${ctx.hookRate.toFixed(1)}% (target ≥25%) | ThruPlay rate: ${ctx.thruPlayRate.toFixed(1)}% (target ≥15%)` : ""}
+${hasVideo ? `Hook rate: ${ctx.hookRate.toFixed(1)}% (target ≥25%) | ThruPlay rate: ${ctx.thruPlayRate.toFixed(1)}% (target ≥15%)` : "Video metrics: not available"}
 CTR: ${ctx.ctrPct.toFixed(2)}% | Account avg CTR: ${ctx.accountAverageCtrPct.toFixed(2)}%
 CPC: $${ctx.cpc.toFixed(2)} | Account avg CPC: $${ctx.accountAverageCpc.toFixed(2)}
 Frequency: ${ctx.frequency.toFixed(2)}x | Impressions: ${ctx.impressions.toLocaleString()} | Spend: $${ctx.spend.toFixed(2)}
-${hasConv ? `Purchases: ${ctx.purchases} | Purchase value: $${ctx.purchaseValue.toFixed(2)} | ROAS: ${ctx.roas.toFixed(2)}x | Leads: ${ctx.formLeads}` : ""}
+${hasConv ? `Purchases: ${ctx.purchases} | Purchase value: $${ctx.purchaseValue.toFixed(2)} | ROAS: ${ctx.roas.toFixed(2)}x | Leads: ${ctx.formLeads}` : "Purchases/leads: no conversion data"}
 Clicks: ${ctx.clicks.toLocaleString()}
 ${transcript}
-EXACT RULES TO APPLY (funnel top-down):
-1. ATTENTION — ONLY if hook rate data exists AND hookRate < 20%: critical. ONLY if hookRate 20–25%: warning. If no hook data, SKIP entirely.
-2. RETENTION — ONLY if thruPlayRate data exists AND thruPlayRate < 15% AND hookRate ≥ 25%: warning. If no data, SKIP entirely.
-3. CLICK/CTR — ONLY if CTR < 0.8% OR CTR < 60% of account avg: warning. If CTR is acceptable, SKIP.
-4. CLICK/CPC — ONLY if CPC > 1.5× account avg AND CTR ≥ 0.8%: warning. Otherwise SKIP.
-5. FATIGUE — ONLY if frequency ≥ 2.5: warning. ONLY if frequency ≥ 5: critical. If frequency < 2.5, DO NOT generate any fatigue suggestion.
-6. CONVERSION — ONLY if clicks > 50 AND purchases = 0 AND leads = 0: warning (already handled by rules engine, skip if listed above).
-7. EFFICIENCY/ROAS — ONLY if roas > 0 AND roas < 1.0: critical. ONLY if roas > 0 AND roas < 2.0: warning. If roas = 0 or missing, DO NOT generate any ROAS suggestion.
-8. POSITIVE — ONLY if CTR ≥ 1.3× account avg: good. ONLY if roas ≥ 1.5× account average: good.
-${ctx.adTranscript ? "9. VIDEO — Use transcript to identify weak hook, missing CTA, or unclear value prop. Quote specifics." : ""}
+THRESHOLD RULES (follow exactly — no exceptions):
+- Hook rate: fire ONLY if hookRate > 0 AND < 20% (critical) or 20–25% (warning). Zero/missing = SKIP.
+- ThruPlay: fire ONLY if thruPlayRate > 0 AND < 15% AND hookRate ≥ 25%. Zero/missing = SKIP.
+- CTR: fire ONLY if CTR < 0.8% OR CTR < 60% of account avg (warning). Positive signal only if CTR ≥ 130% of account avg (good).
+- CPC: fire ONLY if CPC > 1.5× account avg AND CTR ≥ 0.8% (warning).
+- Frequency: ONLY fire if frequency ≥ 2.5 (warning) or ≥ 5 (critical). NEVER fire fatigue below 2.5x.
+- ROAS: ONLY fire if roas > 0 AND < 1.0 (critical) or roas > 0 AND < 2.0 (warning). If roas = 0, NEVER fire a ROAS suggestion.
+- Positive ROAS: fire ONLY if roas ≥ 1.5× account average ROAS (good).
 
-HARD PROHIBITIONS:
-- DO NOT suggest "obtain data", "request metrics", "data unavailable", or similar. If a metric is missing/zero, SKIP it.
-- DO NOT fire fatigue for frequency below 2.5.
-- DO NOT fire ROAS suggestions when roas = 0.
-- DO NOT reference Quality, Engagement, or Conversion Rankings.
-- DO NOT repeat suggestions already listed above.
+ADDITIONAL ANALYSIS (apply after threshold rules):
+- If clicks > 200 and zero conversions despite good CTR: suggest auditing Meta Pixel / conversion tracking setup as a separate item from the landing page check.
+- If CTR is notably strong (≥ account avg) but conversions are zero: flag creative-to-landing-page mismatch.
+- If spend > $500 with zero conversions: highlight the budget risk with the specific spend figure.
+${ctx.adTranscript ? "- Video transcript provided: flag weak hook, missing CTA, or unclear value prop with specific quotes." : ""}
+
+ABSOLUTE PROHIBITIONS:
+- Never suggest "obtain data", "request metrics", "data unavailable", or any variant. Silence on missing data.
+- Never fire fatigue if frequency < 2.5. Never.
+- Never fire ROAS suggestion if roas = 0.
+- Never reference Quality Ranking, Engagement Ranking, or Conversion Ranking.
+- Never repeat an action already listed in the existing suggestions below.
 
 PHRASING:
-- "action": verb-first command, max 6 words.
-- "affects": exactly one of — "Hook Rate", "Hold Rate", "CTR", "CPC", "ROAS", "Frequency", "Conversion Rate".
-- "detail": one sentence, max 22 words, must cite a specific number.
+- "action": verb-first command, max 6 words (e.g. "Audit Meta Pixel tracking setup").
+- "affects": one of — "Hook Rate", "Hold Rate", "CTR", "CPC", "ROAS", "Frequency", "Conversion Rate".
+- "detail": one sentence, max 22 words, cite a specific number from the data.
 - "severity": critical / warning / good / info.
 ${alreadyCovered}
 
-Return ONLY a JSON array, no markdown. 1–4 items (return [] if nothing genuinely applies):
+Return ONLY a JSON array, no markdown. 1–4 items. Return [] only if nothing genuinely applies:
 [{"severity":"...","action":"...","affects":"...","detail":"..."}]`;
   }
 
