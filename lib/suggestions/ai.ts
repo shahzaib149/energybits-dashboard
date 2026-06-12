@@ -29,44 +29,45 @@ function buildPrompt(ctx: AdContext, existing: AdSuggestion[]): string {
     const hasConv     = ctx.purchases > 0 || ctx.formLeads > 0 || ctx.roas > 0;
     const transcript  = ctx.adTranscript ? `\nAD VIDEO ANALYSIS:\n"${ctx.adTranscript.slice(0, 600)}"\nUse this to judge hook quality, value proposition clarity, CTA strength, and tone-audience fit.\n` : "";
 
-    return `You are a senior Meta ads strategist for ENERGYbits (spirulina/chlorella supplements). Diagnose this ad using the funnel framework: Attention → Retention → Click → Conversion → Efficiency.
+    return `You are a Meta ads analyst for ENERGYbits (spirulina/chlorella supplements). Analyze this ad using ONLY the rules below. Do not invent additional rules.
 
 AD: "${ctx.adName}"
 
-FUNNEL METRICS:
-${hasVideo ? `Attention  — Hook rate: ${ctx.hookRate > 0 ? ctx.hookRate.toFixed(1) + "%" : "n/a"} (target ≥25%)
-Retention  — ThruPlay rate: ${ctx.thruPlayRate > 0 ? ctx.thruPlayRate.toFixed(1) + "%" : "n/a"} (target ≥15%)` : "Video metrics: not available"}
-Click      — CTR: ${ctx.ctrPct.toFixed(2)}% (account avg: ${ctx.accountAverageCtrPct.toFixed(2)}%) | CPC: $${ctx.cpc.toFixed(2)} (avg: $${ctx.accountAverageCpc.toFixed(2)})
-Delivery   — Frequency: ${ctx.frequency.toFixed(2)}x | CPM: $${ctx.cpm.toFixed(2)} | Reach: ${ctx.reach.toLocaleString()}
-${hasConv ? `Conversion — Purchases: ${ctx.purchases} | Purchase value: $${ctx.purchaseValue.toFixed(2)} | ROAS: ${ctx.roas > 0 ? ctx.roas.toFixed(2) + "x" : "n/a"} | Leads: ${ctx.formLeads}` : "Conversion: no purchase/lead data available"}
-Spend: $${ctx.spend.toFixed(2)} | Impressions: ${ctx.impressions.toLocaleString()}
-
-META RELEVANCE RANKINGS:
-- Quality Ranking: ${formatRanking(ctx.qualityRanking)}
-- Engagement Rate Ranking: ${formatRanking(ctx.engagementRateRanking)}
-- Conversion Rate Ranking: ${formatRanking(ctx.conversionRateRanking)}
+METRICS:
+${hasVideo ? `Hook rate: ${ctx.hookRate.toFixed(1)}% (target ≥25%) | ThruPlay rate: ${ctx.thruPlayRate.toFixed(1)}% (target ≥15%)` : ""}
+CTR: ${ctx.ctrPct.toFixed(2)}% | Account avg CTR: ${ctx.accountAverageCtrPct.toFixed(2)}%
+CPC: $${ctx.cpc.toFixed(2)} | Account avg CPC: $${ctx.accountAverageCpc.toFixed(2)}
+Frequency: ${ctx.frequency.toFixed(2)}x | Impressions: ${ctx.impressions.toLocaleString()} | Spend: $${ctx.spend.toFixed(2)}
+${hasConv ? `Purchases: ${ctx.purchases} | Purchase value: $${ctx.purchaseValue.toFixed(2)} | ROAS: ${ctx.roas.toFixed(2)}x | Leads: ${ctx.formLeads}` : ""}
+Clicks: ${ctx.clicks.toLocaleString()}
 ${transcript}
-ANALYSIS RULES (funnel top-down — fix the highest leak first):
-1. Hook rate <20% → weak first-3-sec; suggest specific fix (product-in-use, bold benefit, text hook).
-2. Hold/ThruPlay rate low (hook OK) → mid-video drop-off; suggest shortening or front-loading value.
-3. CTR <0.8% or well below avg → headline/offer/CTA weak; suggest rewrite.
-4. CPC high + CTR acceptable → audience/auction issue, not creative.
-5. Frequency ≥2.5 + any negative signal → fatigue; suggest creative refresh or audience expansion.
-6. Good clicks + no conversions → post-click issue; suggest landing page audit.
-7. ROAS <1.0 → unprofitable; suggest pausing.
-8. Quality/Engagement/Conversion ranking "Below Average" → cite the specific ranking, name the root cause.
-9. High CTR + low Conversion Ranking → click-bait mismatch; name it.
-10. If transcript provided → use it to flag weak hook, missing CTA, or poor value prop with specific quotes.
+EXACT RULES TO APPLY (funnel top-down):
+1. ATTENTION — ONLY if hook rate data exists AND hookRate < 20%: critical. ONLY if hookRate 20–25%: warning. If no hook data, SKIP entirely.
+2. RETENTION — ONLY if thruPlayRate data exists AND thruPlayRate < 15% AND hookRate ≥ 25%: warning. If no data, SKIP entirely.
+3. CLICK/CTR — ONLY if CTR < 0.8% OR CTR < 60% of account avg: warning. If CTR is acceptable, SKIP.
+4. CLICK/CPC — ONLY if CPC > 1.5× account avg AND CTR ≥ 0.8%: warning. Otherwise SKIP.
+5. FATIGUE — ONLY if frequency ≥ 2.5: warning. ONLY if frequency ≥ 5: critical. If frequency < 2.5, DO NOT generate any fatigue suggestion.
+6. CONVERSION — ONLY if clicks > 50 AND purchases = 0 AND leads = 0: warning (already handled by rules engine, skip if listed above).
+7. EFFICIENCY/ROAS — ONLY if roas > 0 AND roas < 1.0: critical. ONLY if roas > 0 AND roas < 2.0: warning. If roas = 0 or missing, DO NOT generate any ROAS suggestion.
+8. POSITIVE — ONLY if CTR ≥ 1.3× account avg: good. ONLY if roas ≥ 1.5× account average: good.
+${ctx.adTranscript ? "9. VIDEO — Use transcript to identify weak hook, missing CTA, or unclear value prop. Quote specifics." : ""}
 
-PHRASING RULES:
-- "action": direct command starting with a verb, max 6 words. No full sentences.
-- "affects": one of — "Hook Rate", "Hold Rate", "CTR", "CPC", "CPM", "ROAS", "Frequency", "Conversion Rate", "Quality Ranking", "Engagement Ranking", "Conversion Ranking".
-- "detail": ONE sentence, max 22 words, cite a specific number from the data above.
-- "severity": unprofitable/bottom-10% = critical; below avg/missing CTA/fatigue = warning; strong signal = good; data note = info.
+HARD PROHIBITIONS:
+- DO NOT suggest "obtain data", "request metrics", "data unavailable", or similar. If a metric is missing/zero, SKIP it.
+- DO NOT fire fatigue for frequency below 2.5.
+- DO NOT fire ROAS suggestions when roas = 0.
+- DO NOT reference Quality, Engagement, or Conversion Rankings.
+- DO NOT repeat suggestions already listed above.
+
+PHRASING:
+- "action": verb-first command, max 6 words.
+- "affects": exactly one of — "Hook Rate", "Hold Rate", "CTR", "CPC", "ROAS", "Frequency", "Conversion Rate".
+- "detail": one sentence, max 22 words, must cite a specific number.
+- "severity": critical / warning / good / info.
 ${alreadyCovered}
 
-Respond ONLY with a JSON array (no markdown). 2–4 items:
-[{"severity":"critical"|"warning"|"good"|"info","action":"≤6 words","affects":"metric or ranking","detail":"one sentence ≤22 words"}]`;
+Return ONLY a JSON array, no markdown. 1–4 items (return [] if nothing genuinely applies):
+[{"severity":"...","action":"...","affects":"...","detail":"..."}]`;
   }
 
   return `You are a direct-response digital advertising consultant for ENERGYbits (spirulina/chlorella supplements).
