@@ -114,21 +114,31 @@ function deduplicateByDate(rows: MetaAdInsightRow[]): MetaAdInsightRow[] {
 }
 
 function aggregateRows(rows: MetaAdInsightRow[]) {
-  const clicks      = rows.reduce((s, r) => s + r.clicks, 0);
-  const impressions = rows.reduce((s, r) => s + r.impressions, 0);
-  const reach       = rows.reduce((s, r) => s + r.reach, 0);
-  const spend       = rows.reduce((s, r) => s + r.spend, 0);
-  const ctrPct      = impressions > 0 ? (clicks / impressions) * 100 : 0;
-  const cpc         = clicks > 0      ? spend / clicks              : 0;
-  const cpm         = impressions > 0 ? (spend / impressions) * 1000 : 0;
-  const frequency   = reach > 0       ? impressions / reach         : 0;
-  return { clicks, impressions, reach, spend, ctrPct, cpc, cpm, frequency };
+  const clicks         = rows.reduce((s, r) => s + r.clicks, 0);
+  const impressions    = rows.reduce((s, r) => s + r.impressions, 0);
+  const reach          = rows.reduce((s, r) => s + r.reach, 0);
+  const spend          = rows.reduce((s, r) => s + r.spend, 0);
+  const purchases      = rows.reduce((s, r) => s + r.purchases, 0);
+  const purchaseValue  = rows.reduce((s, r) => s + r.purchaseValue, 0);
+  const formLeads      = rows.reduce((s, r) => s + r.formLeads, 0);
+  const video3SecViews = rows.reduce((s, r) => s + r.video3SecViews, 0);
+  const thruPlays      = rows.reduce((s, r) => s + r.thruPlays, 0);
+  const ctrPct         = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  const cpc            = clicks > 0      ? spend / clicks              : 0;
+  const cpm            = impressions > 0 ? (spend / impressions) * 1000 : 0;
+  const frequency      = reach > 0       ? impressions / reach         : 0;
+  const roas           = spend > 0 && purchaseValue > 0 ? purchaseValue / spend : 0;
+  const hookRate       = impressions > 0 && video3SecViews > 0 ? (video3SecViews / impressions) * 100 : 0;
+  const thruPlayRate   = impressions > 0 && thruPlays > 0 ? (thruPlays / impressions) * 100 : 0;
+  return { clicks, impressions, reach, spend, purchases, purchaseValue, formLeads,
+           ctrPct, cpc, cpm, frequency, roas, hookRate, thruPlayRate };
 }
 
 function buildContext(
   adName: string,
   rows: MetaAdInsightRow[],
-  agg: ReturnType<typeof aggregateRows>
+  agg: ReturnType<typeof aggregateRows>,
+  adTranscript?: string
 ): MetaAdContext {
   const first = rows[0];
   return {
@@ -148,9 +158,17 @@ function buildContext(
     engagementRateRanking: first?.engagementRateRanking ?? "",
     conversionRateRanking: first?.conversionRateRanking ?? "",
     adLink: first?.adLink ?? "",
+    purchases: agg.purchases,
+    purchaseValue: agg.purchaseValue,
+    roas: agg.roas,
+    formLeads: agg.formLeads,
+    hookRate: agg.hookRate,
+    thruPlayRate: agg.thruPlayRate,
+    adTranscript,
     accountAverageCtrPct: agg.ctrPct,
     accountAverageCpc: agg.cpc,
-    accountAverageFrequency: agg.frequency
+    accountAverageFrequency: agg.frequency,
+    accountAverageRoas: agg.roas
   };
 }
 
@@ -166,10 +184,37 @@ export function AdDetailClient({
   // Deduplicate first — removes Make.com double-sync rows
   const deduped = deduplicateByDate(rows);
   const agg     = aggregateRows(deduped);
-  const context = buildContext(adName, deduped, agg);
   const adLink  = deduped[0]?.adLink ?? "";
 
+  type AnalyzeState = "idle" | "loading" | "done" | "error";
+  const [analyzeState, setAnalyzeState]   = useState<AnalyzeState>("idle");
+  const [adTranscript, setAdTranscript]   = useState<string>("");
+  const [analyzeError, setAnalyzeError]   = useState<string>("");
+  const [showAnalysis, setShowAnalysis]   = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+
+  const context = buildContext(adName, deduped, agg, adTranscript || undefined);
+
+  async function handleAnalyzeAd() {
+    if (!adLink) return;
+    setAnalyzeState("loading");
+    setAnalyzeError("");
+    try {
+      const res = await fetch("/api/meta-analytics/analyze-video", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ adLink })
+      });
+      const data = await res.json() as { analysis?: string; error?: string };
+      if (!res.ok || data.error) throw new Error(data.error ?? "Analysis failed");
+      setAdTranscript(data.analysis ?? "");
+      setAnalyzeState("done");
+      setShowAnalysis(true);
+    } catch (err) {
+      setAnalyzeError(err instanceof Error ? err.message : "Analysis failed");
+      setAnalyzeState("error");
+    }
+  }
 
   if (deduped.length === 0) {
     return (
@@ -344,25 +389,68 @@ export function AdDetailClient({
       {adLink && (
         <section className="rounded-xl border border-border bg-surface">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3.5">
             <div className="flex items-center gap-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-textSecondary">Ad Preview</p>
-              <span className="rounded-full bg-surfaceElevated px-2 py-0.5 text-[10px] text-textMuted">
-                Live embed
-              </span>
+              <span className="rounded-full bg-surfaceElevated px-2 py-0.5 text-[10px] text-textMuted">Live embed</span>
             </div>
-            <a
-              href={adLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
-            >
-              <ExternalLink className="h-3 w-3" />
-              Open in {getAdPlatform(adLink) === "instagram" ? "Instagram" : getAdPlatform(adLink) === "facebook" ? "Facebook" : "browser"}
-            </a>
+            <div className="flex items-center gap-2">
+              {/* Gemini Analyze button */}
+              {analyzeState === "idle" && (
+                <button
+                  type="button"
+                  onClick={() => void handleAnalyzeAd()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surfaceElevated px-3 py-1.5 text-xs font-medium text-textPrimary hover:bg-brand hover:text-white hover:border-brand transition-colors"
+                >
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                  Analyze with AI
+                </button>
+              )}
+              {analyzeState === "loading" && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-textMuted">
+                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  Analyzing ad…
+                </span>
+              )}
+              {analyzeState === "done" && (
+                <button type="button" onClick={() => setShowAnalysis((p) => !p)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-xs font-medium text-green-400 hover:bg-green-500/20 transition-colors">
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  {showAnalysis ? "Hide analysis" : "Show analysis"}
+                </button>
+              )}
+              {analyzeState === "error" && (
+                <button type="button" onClick={() => void handleAnalyzeAd()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors">
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Retry analysis
+                </button>
+              )}
+              <a href={adLink} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline">
+                <ExternalLink className="h-3 w-3" />
+                Open in {getAdPlatform(adLink) === "instagram" ? "Instagram" : getAdPlatform(adLink) === "facebook" ? "Facebook" : "browser"}
+              </a>
+            </div>
           </div>
 
-          {/* Dark surround so the white embed sits inside a framed context */}
+          {/* AI analysis result */}
+          {analyzeState === "error" && analyzeError && (
+            <div className="border-b border-border bg-red-500/5 px-5 py-3">
+              <p className="text-xs text-red-400">{analyzeError}</p>
+            </div>
+          )}
+          {analyzeState === "done" && showAnalysis && adTranscript && (
+            <div className="border-b border-border bg-surfaceElevated px-5 py-4">
+              <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-green-400">
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                Gemini AI Analysis — used to enhance suggestions
+              </p>
+              <p className="whitespace-pre-wrap text-xs leading-relaxed text-textSecondary">{adTranscript}</p>
+            </div>
+          )}
+
+          {/* Embed */}
           <div className="rounded-b-xl bg-[#0a0a0a] px-4 py-6">
             {getAdPlatform(adLink) === "instagram" && <InstagramEmbed url={adLink} />}
             {getAdPlatform(adLink) === "facebook" && <FacebookEmbed url={adLink} />}

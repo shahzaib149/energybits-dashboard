@@ -15,6 +15,32 @@ function asNumber(value: unknown): number {
   return 0;
 }
 
+/** Parse Meta's actions/action_values JSON string to extract a specific action type's numeric value. */
+function parseActionValue(raw: string, ...types: string[]): number {
+  if (!raw) return 0;
+  try {
+    const parsed = JSON.parse(raw) as Array<{ action_type: string; value: string }>;
+    if (!Array.isArray(parsed)) return 0;
+    for (const t of types) {
+      const match = parsed.find((a) => a.action_type === t);
+      if (match) return asNumber(match.value);
+    }
+  } catch { /* not valid JSON */ }
+  return 0;
+}
+
+/** Parse purchase ROAS — may be a plain number string or a JSON actions array. */
+function parseRoasString(raw: string): number {
+  if (!raw) return 0;
+  const direct = asNumber(raw);
+  if (direct > 0) return direct;
+  try {
+    const parsed = JSON.parse(raw) as Array<{ value: string }>;
+    if (Array.isArray(parsed) && parsed[0]?.value) return asNumber(parsed[0].value);
+  } catch { /* not valid JSON */ }
+  return 0;
+}
+
 function asDate(value: unknown): string {
   const raw = asString(value);
   return raw ? raw.slice(0, 10) : "";
@@ -55,6 +81,38 @@ export function mapMetaAdInsightRecord(record: AirtableRecordRaw): MetaAdInsight
   const f = record.fields;
   const ctr = asPercent(f.ctr);
 
+  const actionsStr      = asString(f.actions);
+  const actionValuesStr = asString(f.action_values ?? f["action values"] ?? "");
+  const purchaseRoasStr = asString(f.purchase_roas);
+
+  // Conversion counts from actions JSON
+  const purchases = parseActionValue(actionsStr,
+    "purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase");
+  const formLeads = parseActionValue(actionsStr,
+    "lead", "offsite_conversion.fb_pixel_lead", "onsite_conversion.lead_grouped");
+
+  // Purchase value from action_values JSON (monetary)
+  const purchaseValue = parseActionValue(actionValuesStr,
+    "purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase");
+
+  // ROAS: prefer dedicated field, fall back to computed
+  const impressions = asNumber(f.impressions);
+  const spend       = asNumber(f.spend);
+  const roasRaw     = parseRoasString(purchaseRoasStr);
+  const roas        = roasRaw > 0 ? roasRaw
+    : (purchaseValue > 0 && spend > 0 ? purchaseValue / spend : 0);
+
+  // Video funnel metrics (may not exist in all Airtable tables)
+  const video3SecViews = parseActionValue(
+    asString(f.video_p3_watched_actions ?? f["video_p3_watched_actions"] ?? "")
+  ) || asNumber(f.video_3_sec_impressions ?? f["video_3_sec_impressions"] ?? 0);
+  const thruPlays = parseActionValue(
+    asString(f.video_thruplay_watched_actions ?? f["video_thruplay_watched_actions"] ?? "")
+  ) || asNumber(f.video_thruplay_watched ?? 0);
+
+  const hookRate     = impressions > 0 && video3SecViews > 0 ? (video3SecViews / impressions) * 100 : 0;
+  const thruPlayRate = impressions > 0 && thruPlays > 0      ? (thruPlays / impressions) * 100      : 0;
+
   return {
     id: record.id,
     accountId: asString(f.account_id),
@@ -76,12 +134,20 @@ export function mapMetaAdInsightRecord(record: AirtableRecordRaw): MetaAdInsight
     frequency: asNumber(f.frequency),
     fullViewImpressions: asNumber(f.full_view_impressions),
     fullViewReach: asNumber(f.full_view_reach),
-    impressions: asNumber(f.impressions),
+    impressions,
     reach: asNumber(f.reach),
     socialSpend: asNumber(f.social_spend),
-    spend: asNumber(f.spend),
-    purchaseRoas: asString(f.purchase_roas),
+    spend,
+    purchaseRoas: purchaseRoasStr,
     websitePurchaseRoas: asString(f.website_purchase_roas),
-    actions: asString(f.actions)
+    actions: actionsStr,
+    purchases,
+    purchaseValue,
+    roas,
+    formLeads,
+    video3SecViews,
+    thruPlays,
+    hookRate,
+    thruPlayRate
   };
 }

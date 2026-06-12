@@ -35,10 +35,21 @@ export interface MetaAdContext {
   engagementRateRanking: string;
   conversionRateRanking: string;
   adLink: string;
+  // Conversion metrics
+  purchases: number;
+  purchaseValue: number;
+  roas: number;
+  formLeads: number;
+  // Video funnel metrics (0 when not available)
+  hookRate: number;
+  thruPlayRate: number;
+  /** Transcript / AI analysis of the ad video — enhances AI suggestions when present */
+  adTranscript?: string;
   /** Average across all ads in the current period (for relative comparisons) */
   accountAverageCtrPct: number;
   accountAverageCpc: number;
   accountAverageFrequency: number;
+  accountAverageRoas: number;
 }
 
 // ─── Google Ads context ───────────────────────────────────────────────────────

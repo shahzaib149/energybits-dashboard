@@ -131,10 +131,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { platform, adId, adContext } = body as {
+  const { platform, adId, adContext, adTranscript } = body as {
     platform: unknown;
     adId: unknown;
     adContext: unknown;
+    adTranscript?: string;
   };
 
   if (platform !== "meta" && platform !== "google") {
@@ -162,18 +163,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // Serve from cache if a result already exists for today
-  const cached = await readCache(adIdStr, platform);
-  if (cached) {
-    return NextResponse.json({
-      suggestions: cached,
-      cached: true,
-      generatedAt: todayString()
-    });
+  // Merge transcript into context when provided (bypass cache — transcript enriches suggestions)
+  const hasTranscript = typeof adTranscript === "string" && adTranscript.trim().length > 0;
+  const enrichedContext: AdContext = hasTranscript
+    ? ({ ...(adContext as AdContext), adTranscript: adTranscript!.trim() } as AdContext)
+    : (adContext as AdContext);
+
+  // Serve from cache only when no transcript is present
+  if (!hasTranscript) {
+    const cached = await readCache(adIdStr, platform);
+    if (cached) {
+      return NextResponse.json({
+        suggestions: cached,
+        cached: true,
+        generatedAt: todayString()
+      });
+    }
   }
 
   // Generate suggestions (native + rules + AI)
-  const suggestions = await getAdRecommendations(adContext as AdContext);
+  const suggestions = await getAdRecommendations(enrichedContext);
 
   // Persist to cache (fire-and-forget, non-blocking)
   void writeCache(adIdStr, platform, suggestions);

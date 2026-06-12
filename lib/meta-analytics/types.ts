@@ -54,6 +54,16 @@ export interface MetaAdInsightRow {
   purchaseRoas: string;
   websitePurchaseRoas: string;
   actions: string;
+  // Conversion metrics (parsed from actions / action_values)
+  purchases: number;
+  purchaseValue: number;
+  roas: number;
+  formLeads: number;
+  // Video funnel metrics
+  video3SecViews: number;
+  thruPlays: number;
+  hookRate: number;       // video3SecViews / impressions (0 if unavailable)
+  thruPlayRate: number;   // thruPlays / impressions (0 if unavailable)
 }
 
 export interface MetaAggregatedRow {
@@ -69,6 +79,12 @@ export interface MetaAggregatedRow {
   cpm: number;
   frequency: number;
   recordCount: number;
+  purchases: number;
+  purchaseValue: number;
+  roas: number;
+  formLeads: number;
+  hookRate: number;
+  thruPlayRate: number;
 }
 
 export interface MetaDailyTrendRow {

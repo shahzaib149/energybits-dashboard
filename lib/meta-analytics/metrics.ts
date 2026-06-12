@@ -12,10 +12,18 @@ type SumBucket = {
   spend: number;
   recordCount: number;
   adLink: string;
+  purchases: number;
+  purchaseValue: number;
+  formLeads: number;
+  video3SecViews: number;
+  thruPlays: number;
 };
 
 function emptyBucket(): SumBucket {
-  return { clicks: 0, impressions: 0, reach: 0, spend: 0, recordCount: 0, adLink: "" };
+  return {
+    clicks: 0, impressions: 0, reach: 0, spend: 0, recordCount: 0, adLink: "",
+    purchases: 0, purchaseValue: 0, formLeads: 0, video3SecViews: 0, thruPlays: 0
+  };
 }
 
 function computeCtrPct(clicks: number, impressions: number): number {
@@ -34,19 +42,26 @@ function computeCpm(spend: number, impressions: number): number {
 }
 
 function toAggregated(id: string, label: string, bucket: SumBucket): MetaAggregatedRow {
+  const impressions = bucket.impressions;
   return {
     id,
     label,
     adLink: bucket.adLink,
     clicks: bucket.clicks,
-    impressions: bucket.impressions,
+    impressions,
     reach: bucket.reach,
     spend: bucket.spend,
-    ctrPct: computeCtrPct(bucket.clicks, bucket.impressions),
+    ctrPct: computeCtrPct(bucket.clicks, impressions),
     cpc: computeCpc(bucket.spend, bucket.clicks),
-    cpm: computeCpm(bucket.spend, bucket.impressions),
-    frequency: bucket.impressions > 0 && bucket.reach > 0 ? bucket.impressions / bucket.reach : 0,
-    recordCount: bucket.recordCount
+    cpm: computeCpm(bucket.spend, impressions),
+    frequency: impressions > 0 && bucket.reach > 0 ? impressions / bucket.reach : 0,
+    recordCount: bucket.recordCount,
+    purchases: bucket.purchases,
+    purchaseValue: bucket.purchaseValue,
+    roas: bucket.spend > 0 && bucket.purchaseValue > 0 ? bucket.purchaseValue / bucket.spend : 0,
+    formLeads: bucket.formLeads,
+    hookRate: impressions > 0 && bucket.video3SecViews > 0 ? (bucket.video3SecViews / impressions) * 100 : 0,
+    thruPlayRate: impressions > 0 && bucket.thruPlays > 0 ? (bucket.thruPlays / impressions) * 100 : 0
   };
 }
 
