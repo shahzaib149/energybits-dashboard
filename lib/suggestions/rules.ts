@@ -131,7 +131,7 @@ export function runMetaRules(ctx: MetaAdContext): AdSuggestion[] {
     });
   }
 
-  // ── 6. CONVERSION — Purchases / form leads ────────────────────────────────
+  // ── 6. CONVERSION — No purchases AND no leads (general post-click issue) ──
   if (ctx.clicks > 50 && ctx.purchases === 0 && ctx.formLeads === 0) {
     out.push({
       id: rid(), severity: "warning", source: "rules",
@@ -139,8 +139,16 @@ export function runMetaRules(ctx: MetaAdContext): AdSuggestion[] {
       affects: "Conversion Rate",
       detail: `${ctx.clicks.toLocaleString()} clicks but 0 conversions — traffic is landing but not converting; check page-offer alignment and load time.`
     });
-  } else if (ctx.clicks > 50 && ctx.purchases > 0 && ctx.formLeads === 0) {
-    // Purchases happening but no leads — could surface a lead-gen suggestion only if relevant
+  }
+
+  // ── 6b. CONVERSION — Leads specifically not converting (purchases OK) ──────
+  if (ctx.clicks > 100 && ctx.spend > 20 && ctx.formLeads === 0 && ctx.purchases > 0) {
+    out.push({
+      id: rid(), severity: "warning", source: "rules",
+      action: "Improve form / email-sign-up conversion",
+      affects: "Conversion Rate",
+      detail: `${ctx.clicks.toLocaleString()} clicks with purchases but 0 form leads — try simplifying the form, clarifying the value prop, or strengthening the incentive to submit.`
+    });
   }
 
   // ── 7. EFFICIENCY — ROAS ──────────────────────────────────────────────────
