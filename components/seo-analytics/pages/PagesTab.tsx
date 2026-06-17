@@ -1,6 +1,7 @@
 import type { GA4PageRow } from "@/lib/airtable/types";
 import type { DateRange } from "@/lib/date-range/types";
 import { EngagementVsBounce } from "@/components/seo-analytics/pages/EngagementVsBounce";
+import { GA4HealthCard } from "@/components/seo-analytics/pages/GA4HealthCard";
 import { HighEngagementPages } from "@/components/seo-analytics/pages/HighEngagementPages";
 import { PageTypeBreakdown } from "@/components/seo-analytics/pages/PageTypeBreakdown";
 import { PoorPerformancePages } from "@/components/seo-analytics/pages/PoorPerformancePages";
@@ -16,6 +17,8 @@ export interface PagesTabProps {
 export function PagesTab({ pages, highEngagement, poorPerformance, dateRange }: PagesTabProps) {
   return (
     <div className="space-y-6">
+      <GA4HealthCard pages={pages} />
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TopPagesChart pages={pages} dateRange={dateRange} />
         <PageTypeBreakdown pages={pages} />
