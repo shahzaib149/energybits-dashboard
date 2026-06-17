@@ -64,12 +64,13 @@ export default async function SEOAnalyticsPage({
   try {
     const [keywords, pages, sources, critical, lowCTR, page2, highEngagement, poorPerformance, channels] =
       await Promise.all([
-        airtable.getSEOKeywords({ limit: 500, dateRange }),
+        // SEO Tracking rows are keyword rankings/opportunities — no date filter needed
+        airtable.getSEOKeywords({ limit: 500 }),
         airtable.getTopPagesBySessions(50, dateRange),
         airtable.getTrafficSources(50, dateRange),
-        airtable.getCriticalKeywords(dateRange),
-        airtable.getLowCTRKeywords(dateRange),
-        airtable.getPage2Opportunities(dateRange),
+        airtable.getCriticalKeywords(),
+        airtable.getLowCTRKeywords(),
+        airtable.getPage2Opportunities(),
         airtable.getHighEngagementPages(dateRange),
         airtable.getPoorPerformancePages(dateRange),
         airtable.getChannelBreakdown(dateRange)
