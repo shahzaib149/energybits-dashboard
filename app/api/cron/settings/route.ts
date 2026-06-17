@@ -34,6 +34,12 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  await updateCronSettings({ enabled: body.enabled });
+  const result = await updateCronSettings({ enabled: body.enabled });
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: result.error ?? "Failed to save setting" },
+      { status: 500 }
+    );
+  }
   return NextResponse.json({ success: true, enabled: body.enabled });
 }

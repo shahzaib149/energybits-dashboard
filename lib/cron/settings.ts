@@ -52,20 +52,28 @@ export async function getCronSettings(): Promise<CronSettings> {
 
 export async function updateCronSettings(
   updates: Partial<CronSettings & { updated_at: string }>
-): Promise<void> {
-  // Always write to local cache immediately so it survives Supabase outages
-  writeLocalCache(updates);
-
+): Promise<{ ok: boolean; error?: string }> {
   const supabase = createServiceRoleClient();
-  if (!supabase) return;
+  if (!supabase) {
+    // No Supabase — fall back to local cache only (local dev without service key)
+    writeLocalCache(updates);
+    return { ok: true };
+  }
 
-  await withTimeout(
+  const result = await withTimeout(
     Promise.resolve(
       supabase
         .from("cron_settings")
         .upsert({ id: 1, ...updates, updated_at: new Date().toISOString() }, { onConflict: "id" })
-        .then(() => true)
+        .then(({ error }) => (error ? { ok: false as const, error: error.message } : { ok: true as const }))
     ),
     SUPABASE_TIMEOUT_MS
   );
+
+  if (result?.ok) {
+    writeLocalCache(updates); // keep local cache in sync on success
+    return { ok: true };
+  }
+
+  return { ok: false, error: result?.error ?? "Supabase write timed out" };
 }
