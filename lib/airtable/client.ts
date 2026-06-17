@@ -47,48 +47,30 @@ export class AirtableClient {
     limit?: number;
     filter?: string;
   }): Promise<SEOTrackingRow[]> {
-    // Step 1: find the most recent End Date in the SEO Tracking table
-    const latestRecords = await this.client.fetchAllPages(
-      SEO.tables.seoTracking,
-      mapSEOTrackingRecord,
-      {
-        filterByFormula: combineFormulas('NOT({End Date} = "")', opts?.filter),
-        sort: [{ field: "End Date", direction: "desc" }],
-        maxRecords: 1,
-        noCache: true
-      }
-    );
-    const latestEndDate = latestRecords[0]?.endDate ?? null;
+    // Fetch all rows — no date filter (SEO Tracking is a cumulative snapshot table)
+    const allRows = await this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
+      filterByFormula: opts?.filter,
+      sort: [{ field: "Clicks", direction: "desc" }],
+      cacheTags: ["airtable-seo-keywords"]
+    });
 
-    // Step 2: fetch all rows from that latest period (+ rows with no End Date)
-    const periodFilter = latestEndDate
-      ? combineFormulas(`{End Date} = "${latestEndDate}"`, opts?.filter)
-      : opts?.filter;
-    const noDateFilter = opts?.filter
-      ? combineFormulas('{End Date} = ""', opts.filter)
-      : '{End Date} = ""';
+    if (allRows.length === 0) return [];
 
-    const [periodRows, undatedRows] = await Promise.all([
-      this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
-        filterByFormula: periodFilter,
-        sort: [{ field: "Clicks", direction: "desc" }],
-        cacheTags: ["airtable-seo-keywords", latestEndDate ?? "no-date"]
-      }),
-      this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
-        filterByFormula: noDateFilter,
-        sort: [{ field: "Clicks", direction: "desc" }],
-        cacheTags: ["airtable-seo-keywords-undated"]
-      })
-    ]);
+    // Find the most recent End Date present in the data (in-memory, no extra API call)
+    const latestEndDate = allRows.reduce<string>((max, r) => {
+      return r.endDate && r.endDate > max ? r.endDate : max;
+    }, "");
 
-    // Merge: latest-period rows first, then undated rows (no duplicates by query)
-    const seen = new Set(periodRows.map((r) => r.query.toLowerCase()));
-    const merged = [
-      ...periodRows,
-      ...undatedRows.filter((r) => !seen.has(r.query.toLowerCase()))
-    ];
+    let filtered: SEOTrackingRow[];
+    if (latestEndDate) {
+      // Keep only rows from the latest period + rows with no End Date (manual entries)
+      filtered = allRows.filter((r) => r.endDate === latestEndDate || !r.endDate);
+    } else {
+      // No rows have an End Date at all — show everything
+      filtered = allRows;
+    }
 
-    return opts?.limit ? merged.slice(0, opts.limit) : merged;
+    return opts?.limit ? filtered.slice(0, opts.limit) : filtered;
   }
 
   async updateActionStatus(recordId: string, status: ActionStatus): Promise<SEOTrackingRow> {
