@@ -187,7 +187,7 @@ export async function fetchTopActions(dateRange?: DateRange): Promise<TopActions
   const candidates: ActionItem[] = [];
 
   try {
-    const seoRows = await getAirtableClient().getCriticalKeywordsPending(dateRange);
+    const seoRows = await getAirtableClient().getCriticalKeywordsPending();
     candidates.push(...seoActionItems(seoRows.sort((a, b) => b.impressions - a.impressions)));
   } catch (err) {
     errors.push(err instanceof Error ? err.message : "SEO data unavailable");

@@ -150,8 +150,8 @@ export async function fetchOverviewHubData(
   if (isSEOAnalyticsConfigured()) {
     try {
       const [keywords, critical] = await Promise.all([
-        airtable.getSEOKeywords({ limit: 500, dateRange }),
-        airtable.getCriticalKeywords(dateRange)
+        airtable.getSEOKeywords({ limit: 500 }),
+        airtable.getCriticalKeywords()
       ]);
       const clicks = sumClicks(keywords);
       channels.push({

@@ -84,7 +84,7 @@ function mapTopPage(row: GA4PageRow): SEOIntelligence["topPages"][number] {
 
 export async function fetchSEOIntelligence(dateRange: DateRange): Promise<SEOIntelligence> {
   const [keywords, pages] = await Promise.all([
-    airtable.getSEOKeywords({ dateRange }),
+    airtable.getSEOKeywords(),
     airtable.getTopPagesBySessions(1000, dateRange)
   ]);
 

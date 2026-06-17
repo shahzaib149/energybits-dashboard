@@ -46,15 +46,49 @@ export class AirtableClient {
   async getSEOKeywords(opts?: {
     limit?: number;
     filter?: string;
-    dateRange?: DateRange;
   }): Promise<SEOTrackingRow[]> {
-    const dateFilter = opts?.dateRange ? endDateInRangeFormula(opts.dateRange) : undefined;
-    const rows = await this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
-      filterByFormula: combineFormulas(opts?.filter, dateFilter),
-      sort: [{ field: "Clicks", direction: "desc" }],
-      cacheTags: this.cacheTagsForRange(opts?.dateRange)
-    });
-    return opts?.limit ? rows.slice(0, opts.limit) : rows;
+    // Step 1: find the most recent End Date in the SEO Tracking table
+    const latestRecords = await this.client.fetchAllPages(
+      SEO.tables.seoTracking,
+      mapSEOTrackingRecord,
+      {
+        filterByFormula: combineFormulas('NOT({End Date} = "")', opts?.filter),
+        sort: [{ field: "End Date", direction: "desc" }],
+        maxRecords: 1,
+        noCache: true
+      }
+    );
+    const latestEndDate = latestRecords[0]?.endDate ?? null;
+
+    // Step 2: fetch all rows from that latest period (+ rows with no End Date)
+    const periodFilter = latestEndDate
+      ? combineFormulas(`{End Date} = "${latestEndDate}"`, opts?.filter)
+      : opts?.filter;
+    const noDateFilter = opts?.filter
+      ? combineFormulas('{End Date} = ""', opts.filter)
+      : '{End Date} = ""';
+
+    const [periodRows, undatedRows] = await Promise.all([
+      this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
+        filterByFormula: periodFilter,
+        sort: [{ field: "Clicks", direction: "desc" }],
+        cacheTags: ["airtable-seo-keywords", latestEndDate ?? "no-date"]
+      }),
+      this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
+        filterByFormula: noDateFilter,
+        sort: [{ field: "Clicks", direction: "desc" }],
+        cacheTags: ["airtable-seo-keywords-undated"]
+      })
+    ]);
+
+    // Merge: latest-period rows first, then undated rows (no duplicates by query)
+    const seen = new Set(periodRows.map((r) => r.query.toLowerCase()));
+    const merged = [
+      ...periodRows,
+      ...undatedRows.filter((r) => !seen.has(r.query.toLowerCase()))
+    ];
+
+    return opts?.limit ? merged.slice(0, opts.limit) : merged;
   }
 
   async updateActionStatus(recordId: string, status: ActionStatus): Promise<SEOTrackingRow> {
@@ -113,12 +147,12 @@ export class AirtableClient {
     return this.client.fetchAllPages(SEO.tables.aeoPromptOpportunities, mapAEOPrompt, { noCache: true });
   }
 
-  async getCriticalKeywords(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
-    return this.getSEOKeywords({ filter: '{SEO Priority} = "Critical"', dateRange });
+  async getCriticalKeywords(): Promise<SEOTrackingRow[]> {
+    return this.getSEOKeywords({ filter: '{SEO Priority} = "Critical"' });
   }
 
-  async getCriticalKeywordsPending(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
-    const rows = await this.getCriticalKeywords(dateRange);
+  async getCriticalKeywordsPending(): Promise<SEOTrackingRow[]> {
+    const rows = await this.getCriticalKeywords();
     return rows.filter((r) => r.actionStatus !== "Done" && r.actionStatus !== "Ignored");
   }
 
@@ -129,25 +163,16 @@ export class AirtableClient {
       .sort((a, b) => b.sessions - a.sessions);
   }
 
-  async getLowCTRKeywords(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
-    return this.getSEOKeywords({
-      filter: '{SEO Opportunity Type} = "High Impressions Low CTR"',
-      dateRange
-    });
+  async getLowCTRKeywords(): Promise<SEOTrackingRow[]> {
+    return this.getSEOKeywords({ filter: '{SEO Opportunity Type} = "High Impressions Low CTR"' });
   }
 
-  async getPage2Opportunities(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
-    return this.getSEOKeywords({
-      filter: '{SEO Opportunity Type} = "Page 2 Ranking Opportunity"',
-      dateRange
-    });
+  async getPage2Opportunities(): Promise<SEOTrackingRow[]> {
+    return this.getSEOKeywords({ filter: '{SEO Opportunity Type} = "Page 2 Ranking Opportunity"' });
   }
 
-  async getZeroClickKeywords(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
-    return this.getSEOKeywords({
-      filter: '{SEO Opportunity Type} = "Zero Click Opportunity"',
-      dateRange
-    });
+  async getZeroClickKeywords(): Promise<SEOTrackingRow[]> {
+    return this.getSEOKeywords({ filter: '{SEO Opportunity Type} = "Zero Click Opportunity"' });
   }
 
   async getTopPagesBySessions(limit = 50, dateRange?: DateRange): Promise<GA4PageRow[]> {
@@ -207,7 +232,7 @@ export class AirtableClient {
 
   async getDataBounds(): Promise<DataBounds | null> {
     try {
-      const [oldest, newest] = await Promise.all([
+      const [ga4Oldest, ga4Newest, seoNewest] = await Promise.all([
         this.client.fetchAllPages(SEO.tables.ga4PagePerformance, mapGA4PageRecord, {
           filterByFormula: 'NOT({End Date} = "")',
           sort: [{ field: "End Date", direction: "asc" }],
@@ -219,12 +244,24 @@ export class AirtableClient {
           sort: [{ field: "End Date", direction: "desc" }],
           maxRecords: 1,
           noCache: true
+        }),
+        // Also check SEO Tracking for its latest End Date
+        this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
+          filterByFormula: 'NOT({End Date} = "")',
+          sort: [{ field: "End Date", direction: "desc" }],
+          maxRecords: 1,
+          noCache: true
         })
       ]);
-      const minDate = oldest[0]?.endDate;
-      const maxDate = newest[0]?.endDate;
-      if (!minDate || !maxDate) return null;
-      return { minDate, maxDate };
+
+      const ga4Min = ga4Oldest[0]?.endDate ?? null;
+      const ga4Max = ga4Newest[0]?.endDate ?? null;
+      const seoMax = seoNewest[0]?.endDate ?? null;
+
+      // Use the earliest of GA4 min as floor, latest of GA4/SEO as ceiling
+      if (!ga4Min || !ga4Max) return null;
+      const maxDate = seoMax && seoMax > ga4Max ? seoMax : ga4Max;
+      return { minDate: ga4Min, maxDate };
     } catch {
       return null;
     }
