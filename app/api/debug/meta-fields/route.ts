@@ -12,9 +12,8 @@ export async function GET(req: Request) {
     const baseId = await resolveBaseId(AIRTABLE_BASES.meta.name);
     const tableName = AIRTABLE_BASES.meta.tables.adInsights; // "facebook_ads_insights"
 
-    const filter = adName
-      ? `&filterByFormula=SEARCH("${adName.replace(/"/g, "")}", {ad_name})`
-      : "";
+    // Don't filter — just grab 1 record to see all field names
+    const filter = "";
 
     const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?maxRecords=1${filter}`;
 
