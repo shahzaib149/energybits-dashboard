@@ -159,12 +159,26 @@ export class AirtableClient {
 
   async getTopPagesBySessions(limit = 50, dateRange?: DateRange): Promise<GA4PageRow[]> {
     const dateFilter = dateRange ? endDateInRangeFormula(dateRange) : undefined;
-    const rows = await this.client.fetchAllPages(SEO.tables.ga4PagePerformance, mapGA4PageRecord, {
+    const allRows = await this.client.fetchAllPages(SEO.tables.ga4PagePerformance, mapGA4PageRecord, {
       filterByFormula: dateFilter,
       sort: [{ field: "Sessions", direction: "desc" }],
       cacheTags: this.cacheTagsForRange(dateRange)
     });
-    return rows.slice(0, limit);
+    // Deduplicate by pagePath — Make.com re-syncs create identical rows.
+    // Keep the record with the most recent endDate (or highest sessions if tied).
+    const seen = new Map<string, GA4PageRow>();
+    for (const row of allRows) {
+      const key = row.pagePath || row.id;
+      const existing = seen.get(key);
+      if (!existing ||
+          row.endDate > existing.endDate ||
+          (row.endDate === existing.endDate && row.sessions > existing.sessions)) {
+        seen.set(key, row);
+      }
+    }
+    return Array.from(seen.values())
+      .sort((a, b) => b.sessions - a.sessions)
+      .slice(0, limit);
   }
 
   async getHighEngagementPages(dateRange?: DateRange): Promise<GA4PageRow[]> {
@@ -183,20 +197,30 @@ export class AirtableClient {
 
   async getTrafficSources(limit = 50, dateRange?: DateRange): Promise<GA4SourceRow[]> {
     const dateFilter = dateRange ? endDateInRangeFormula(dateRange) : undefined;
-    const rows = await this.client.fetchAllPages(SEO.tables.ga4TrafficSources, mapGA4SourceRecord, {
+    const allRows = await this.client.fetchAllPages(SEO.tables.ga4TrafficSources, mapGA4SourceRecord, {
       filterByFormula: dateFilter,
       sort: [{ field: "Sessions", direction: "desc" }],
       cacheTags: this.cacheTagsForRange(dateRange)
     });
-    return rows.slice(0, limit);
+    // Deduplicate by source+medium — same Make.com re-sync issue as pages
+    const seen = new Map<string, GA4SourceRow>();
+    for (const row of allRows) {
+      const key = `${row.source}|${row.medium}|${row.channelGroup}`;
+      const existing = seen.get(key);
+      if (!existing ||
+          row.endDate > existing.endDate ||
+          (row.endDate === existing.endDate && row.sessions > existing.sessions)) {
+        seen.set(key, row);
+      }
+    }
+    return Array.from(seen.values())
+      .sort((a, b) => b.sessions - a.sessions)
+      .slice(0, limit);
   }
 
   async getChannelBreakdown(dateRange?: DateRange): Promise<ChannelBreakdownRow[]> {
-    const dateFilter = dateRange ? endDateInRangeFormula(dateRange) : undefined;
-    const sources = await this.client.fetchAllPages(SEO.tables.ga4TrafficSources, mapGA4SourceRecord, {
-      filterByFormula: dateFilter,
-      cacheTags: this.cacheTagsForRange(dateRange)
-    });
+    // Reuse deduplicated sources from getTrafficSources
+    const sources = await this.getTrafficSources(MAX_RECORDS, dateRange);
     const byChannel = new Map<string, number>();
     for (const row of sources) {
       const channel = row.channelGroup || "Other";
