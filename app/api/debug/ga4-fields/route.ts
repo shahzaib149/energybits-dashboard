@@ -10,7 +10,8 @@ export async function GET() {
     const apiKey = getAirtableApiKey();
     const baseId = await resolveBaseId(AIRTABLE_BASES.seo.name);
     const tableName = AIRTABLE_BASES.seo.tables.ga4PagePerformance;
-    const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?maxRecords=1`;
+    // Fetch top 5 records sorted by Sessions desc to see what's actually rendering
+    const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?maxRecords=5&sort%5B0%5D%5Bfield%5D=Sessions&sort%5B0%5D%5Bdirection%5D=desc`;
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${apiKey}` },
@@ -22,18 +23,19 @@ export async function GET() {
     }
 
     const data = (await res.json()) as { records: Array<{ id: string; fields: Record<string, unknown> }> };
-    const record = data.records[0];
-
-    if (!record) {
+    if (!data.records.length) {
       return NextResponse.json({ message: "No records found in GA4 Page Performance table" });
     }
 
     return NextResponse.json({
-      recordId: record.id,
-      fieldNames: Object.keys(record.fields),
-      sampleValues: Object.fromEntries(
-        Object.entries(record.fields).map(([k, v]) => [k, typeof v === "string" ? v.slice(0, 80) : v])
-      )
+      fieldNames: Object.keys(data.records[0].fields),
+      top5BySessionsDesc: data.records.map(r => ({
+        id: r.id,
+        pagePath: r.fields["Page Path"] ?? null,
+        pageTitle: r.fields["Page Title"] ?? null,
+        sessions: r.fields["Sessions"] ?? null,
+        endDate: r.fields["End Date"] ?? null
+      }))
     });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
