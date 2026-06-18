@@ -15,11 +15,16 @@ function asNumber(value: unknown): number {
   return 0;
 }
 
-/** Parse Meta's actions/action_values JSON string to extract a specific action type's numeric value. */
+/** Parse Meta's actions/action_values JSON string to extract a specific action type's numeric value.
+ *  Airtable stores this as comma-separated objects WITHOUT surrounding brackets, e.g.:
+ *    {"action_type":"purchase","value":"2"}, {"action_type":"link_click","value":"96"}
+ *  We wrap it in [] to make it valid JSON before parsing. */
 function parseActionValue(raw: string, ...types: string[]): number {
   if (!raw) return 0;
   try {
-    const parsed = JSON.parse(raw) as Array<{ action_type: string; value: string }>;
+    // Wrap in array brackets if not already an array
+    const normalized = raw.trim().startsWith("[") ? raw : `[${raw}]`;
+    const parsed = JSON.parse(normalized) as Array<{ action_type: string; value: string }>;
     if (!Array.isArray(parsed)) return 0;
     for (const t of types) {
       const match = parsed.find((a) => a.action_type === t);
@@ -29,13 +34,15 @@ function parseActionValue(raw: string, ...types: string[]): number {
   return 0;
 }
 
-/** Parse purchase ROAS — may be a plain number string or a JSON actions array. */
+/** Parse purchase ROAS — may be a plain number, a JSON array, or a single JSON object. */
 function parseRoasString(raw: string): number {
   if (!raw) return 0;
   const direct = asNumber(raw);
   if (direct > 0) return direct;
   try {
-    const parsed = JSON.parse(raw) as Array<{ value: string }>;
+    // Wrap in array brackets if not already an array (same Airtable format issue)
+    const normalized = raw.trim().startsWith("[") ? raw : `[${raw}]`;
+    const parsed = JSON.parse(normalized) as Array<{ value: string }>;
     if (Array.isArray(parsed) && parsed[0]?.value) return asNumber(parsed[0].value);
   } catch { /* not valid JSON */ }
   return 0;
@@ -95,12 +102,18 @@ export function mapMetaAdInsightRecord(record: AirtableRecordRaw): MetaAdInsight
   const purchaseValue = parseActionValue(actionValuesStr,
     "purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase");
 
-  // ROAS: prefer dedicated field, fall back to computed
   const impressions = asNumber(f.impressions);
   const spend       = asNumber(f.spend);
   const roasRaw     = parseRoasString(purchaseRoasStr);
-  const roas        = roasRaw > 0 ? roasRaw
-    : (purchaseValue > 0 && spend > 0 ? purchaseValue / spend : 0);
+
+  // If action_values is missing (common — Airtable often doesn't sync it),
+  // derive purchaseValue from ROAS × spend so revenue/ROAS are still accurate.
+  const purchaseValueFinal = purchaseValue > 0
+    ? purchaseValue
+    : (roasRaw > 0 && spend > 0 ? roasRaw * spend : 0);
+
+  const roas = roasRaw > 0 ? roasRaw
+    : (purchaseValueFinal > 0 && spend > 0 ? purchaseValueFinal / spend : 0);
 
   // Video funnel metrics (may not exist in all Airtable tables)
   const video3SecViews = parseActionValue(
@@ -142,7 +155,7 @@ export function mapMetaAdInsightRecord(record: AirtableRecordRaw): MetaAdInsight
     websitePurchaseRoas: asString(f.website_purchase_roas),
     actions: actionsStr,
     purchases,
-    purchaseValue,
+    purchaseValue: purchaseValueFinal,
     roas,
     formLeads,
     video3SecViews,
