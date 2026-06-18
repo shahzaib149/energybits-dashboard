@@ -10,10 +10,6 @@ export const dynamic = "force-dynamic";
 
 const SUPABASE_TIMEOUT_MS = 4_000;
 
-function todayString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 type CachedRecord = Record<string, unknown>;
 
 function normalizeFromCache(s: CachedRecord): AdSuggestion | null {
@@ -22,7 +18,6 @@ function normalizeFromCache(s: CachedRecord): AdSuggestion | null {
     ? (s.severity as AdSuggestion["severity"])
     : null;
   if (!severity) return null;
-  // Support both old format (title field) and new format (action field)
   const action =
     typeof s.action === "string" && s.action.trim()
       ? s.action.trim()
@@ -41,7 +36,6 @@ function normalizeFromCache(s: CachedRecord): AdSuggestion | null {
   };
 }
 
-/** Race a promise against a timeout; returns null if it loses or throws. */
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([
     p.catch(() => null),
@@ -49,31 +43,39 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
   ]);
 }
 
+type CacheRow = { suggestions: unknown; generated_at: string | null };
+
 async function readCache(
   adId: string,
   platform: string
-): Promise<AdSuggestion[] | null> {
+): Promise<{ suggestions: AdSuggestion[]; generatedAt: string } | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
+
   const result = await withTimeout(
     Promise.resolve(
       supabase
         .from("ad_suggestions_cache")
-        .select("suggestions")
+        .select("suggestions, generated_at")
         .eq("ad_id", adId)
         .eq("platform", platform)
-        .eq("cache_date", todayString())
         .maybeSingle()
         .then(({ data }) => {
-          if (!data?.suggestions || !Array.isArray(data.suggestions)) return null;
-          const normalized = (data.suggestions as CachedRecord[])
+          const row = data as CacheRow | null;
+          if (!row?.suggestions || !Array.isArray(row.suggestions)) return null;
+          const normalized = (row.suggestions as CachedRecord[])
             .map(normalizeFromCache)
             .filter((s): s is AdSuggestion => s !== null);
-          return normalized.length > 0 ? normalized : null;
+          if (normalized.length === 0) return null;
+          return {
+            suggestions: normalized,
+            generatedAt: row.generated_at ?? new Date().toISOString()
+          };
         })
     ),
     SUPABASE_TIMEOUT_MS
   );
+
   return result ?? null;
 }
 
@@ -81,23 +83,29 @@ async function writeCache(
   adId: string,
   platform: string,
   suggestions: AdSuggestion[]
-): Promise<void> {
+): Promise<string> {
+  const now = new Date().toISOString();
   try {
     const supabase = createServiceRoleClient();
-    if (!supabase) return;
+    if (!supabase) return now;
     await supabase.from("ad_suggestions_cache").upsert(
-      { ad_id: adId, platform, cache_date: todayString(), suggestions },
-      { onConflict: "ad_id,platform,cache_date" }
+      {
+        ad_id: adId,
+        platform,
+        suggestions,
+        generated_at: now,
+        // keep cache_date for backwards compat with old rows
+        cache_date: now.slice(0, 10)
+      },
+      { onConflict: "ad_id,platform" }
     );
   } catch {
     // Cache write failures are non-fatal
   }
+  return now;
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // Auth is best-effort: try to identify the user for audit logging only.
-  // Suggestions are generated purely from the context in the request body —
-  // no user-specific data is read — so we never block on auth failures.
   let user: Awaited<ReturnType<typeof getServerUser>> = null;
   try {
     const authRace = await Promise.race([
@@ -131,11 +139,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { platform, adId, adContext, adTranscript } = body as {
+  const { platform, adId, adContext, adTranscript, force } = body as {
     platform: unknown;
     adId: unknown;
     adContext: unknown;
     adTranscript?: string;
+    force?: boolean;
   };
 
   if (platform !== "meta" && platform !== "google") {
@@ -145,7 +154,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // Normalise adId — fall back to adName from context if adId is blank
   const adIdStr =
     typeof adId === "string" && adId.trim()
       ? adId.trim()
@@ -163,31 +171,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // Merge transcript into context when provided (bypass cache — transcript enriches suggestions)
   const hasTranscript = typeof adTranscript === "string" && adTranscript.trim().length > 0;
+  const forceRefresh  = force === true;
+
   const enrichedContext: AdContext = hasTranscript
     ? ({ ...(adContext as AdContext), adTranscript: adTranscript!.trim() } as AdContext)
     : (adContext as AdContext);
 
-  // Serve from cache only when no transcript is present
-  if (!hasTranscript) {
+  // Serve from persistent cache unless user explicitly forced a refresh or has transcript
+  if (!hasTranscript && !forceRefresh) {
     const cached = await readCache(adIdStr, platform);
     if (cached) {
       return NextResponse.json({
-        suggestions: cached,
+        suggestions: cached.suggestions,
         cached: true,
-        generatedAt: todayString()
+        generatedAt: cached.generatedAt
       });
     }
   }
 
-  // Generate suggestions (native + rules + AI)
+  // Generate fresh suggestions (native + rules + AI)
   const suggestions = await getAdRecommendations(enrichedContext);
 
-  // Persist to cache (fire-and-forget, non-blocking)
-  void writeCache(adIdStr, platform, suggestions);
+  // Persist to cache (await so we get the real timestamp back)
+  const generatedAt = await writeCache(adIdStr, platform, suggestions);
 
-  // Audit log is fire-and-forget — never block the response for logging
   if (user) {
     const { ipAddress, userAgent } = getRequestContext(req);
     void logAuditEvent({
@@ -196,7 +204,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       action: "ad_suggestion.viewed",
       resourceType: platform === "meta" ? "meta-ad" : "google-ad",
       resourceId: adIdStr,
-      metadata: { suggestionCount: suggestions.length },
+      metadata: { suggestionCount: suggestions.length, forced: forceRefresh },
       ipAddress,
       userAgent
     });
@@ -205,6 +213,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     suggestions,
     cached: false,
-    generatedAt: new Date().toISOString()
+    generatedAt
   });
 }

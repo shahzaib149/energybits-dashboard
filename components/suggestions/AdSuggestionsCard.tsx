@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   X, Zap, TrendingUp, Eye, MousePointer, ShoppingCart, BarChart2,
-  AlertTriangle, CheckCircle, Info, XCircle, AlertCircle
+  AlertTriangle, CheckCircle, Info, XCircle, AlertCircle, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type {
@@ -39,26 +39,24 @@ function getFunnelStage(affects: string) {
 
 // ─── Severity config ──────────────────────────────────────────────────────────
 
-const SEVERITY: Record<SuggestionSeverity, {
-  bar: string; bg: string; badge: string; label: string;
-}> = {
+const SEVERITY: Record<SuggestionSeverity, { bar: string; bg: string; badge: string; label: string }> = {
   critical: {
     bar:   "bg-red-500",
-    bg:    "bg-red-500/[0.04] hover:bg-red-500/[0.07]",
+    bg:    "bg-red-500/[0.04] hover:bg-red-500/[0.08]",
     badge: "bg-red-500/15 text-red-400 border border-red-500/25",
     label: "Critical",
   },
   warning: {
     bar:   "bg-amber-400",
-    bg:    "bg-amber-400/[0.04] hover:bg-amber-400/[0.07]",
+    bg:    "bg-amber-400/[0.04] hover:bg-amber-400/[0.08]",
     badge: "bg-amber-400/15 text-amber-400 border border-amber-400/25",
     label: "Warning",
   },
   good: {
     bar:   "bg-green-500",
-    bg:    "bg-green-500/[0.04] hover:bg-green-500/[0.07]",
+    bg:    "bg-green-500/[0.04] hover:bg-green-500/[0.08]",
     badge: "bg-green-500/15 text-green-400 border border-green-500/25",
-    label: "Good",
+    label: "Positive",
   },
   info: {
     bar:   "bg-border",
@@ -68,11 +66,9 @@ const SEVERITY: Record<SuggestionSeverity, {
   }
 };
 
-// ─── Severity icon ────────────────────────────────────────────────────────────
-
 function SevIcon({ sev }: { sev: SuggestionSeverity }) {
   const cls = "h-3.5 w-3.5 shrink-0";
-  if (sev === "critical") return <XCircle className={cn(cls, "text-red-400")} />;
+  if (sev === "critical") return <XCircle    className={cn(cls, "text-red-400")} />;
   if (sev === "warning")  return <AlertCircle className={cn(cls, "text-amber-400")} />;
   if (sev === "good")     return <CheckCircle className={cn(cls, "text-green-400")} />;
   return <Info className={cn(cls, "text-textMuted")} />;
@@ -107,20 +103,38 @@ function computeScore(ctx: AdContext): number | null {
 function ScoreRing({ score }: { score: number }) {
   const r = 18;
   const circ = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(100, score));
-  const fill = `${(pct / 100) * circ} ${circ}`;
+  const pct   = Math.max(0, Math.min(100, score));
+  const fill  = `${(pct / 100) * circ} ${circ}`;
   const color = pct >= 70 ? "#22c55e" : pct >= 40 ? "#f59e0b" : "#ef4444";
+  const label = pct >= 70 ? "Good" : pct >= 40 ? "Fair" : "Poor";
   return (
-    <div className="relative flex h-12 w-12 items-center justify-center">
-      <svg className="-rotate-90" width="48" height="48" viewBox="0 0 48 48">
-        <circle cx="24" cy="24" r={r} fill="none" stroke="currentColor" strokeWidth="3" className="text-border" />
-        <circle cx="24" cy="24" r={r} fill="none" stroke={color} strokeWidth="3"
-          strokeDasharray={fill} strokeLinecap="round"
-          style={{ transition: "stroke-dasharray 0.6s ease" }} />
-      </svg>
-      <span className="absolute text-[11px] font-bold tabular-nums" style={{ color }}>{pct}</span>
+    <div className="flex flex-col items-center gap-0.5">
+      <div className="relative flex h-11 w-11 items-center justify-center">
+        <svg className="-rotate-90" width="44" height="44" viewBox="0 0 48 48">
+          <circle cx="24" cy="24" r={r} fill="none" stroke="currentColor" strokeWidth="3.5" className="text-border" />
+          <circle cx="24" cy="24" r={r} fill="none" stroke={color} strokeWidth="3.5"
+            strokeDasharray={fill} strokeLinecap="round"
+            style={{ transition: "stroke-dasharray 0.7s ease" }} />
+        </svg>
+        <span className="absolute text-[10px] font-bold tabular-nums" style={{ color }}>{pct}</span>
+      </div>
+      <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color }}>{label}</span>
     </div>
   );
+}
+
+// ─── Relative time ────────────────────────────────────────────────────────────
+
+function relativeTime(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const mins  = Math.floor(ms / 60_000);
+  const hours = Math.floor(ms / 3_600_000);
+  const days  = Math.floor(ms / 86_400_000);
+  if (mins  < 1)  return "just now";
+  if (mins  < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days  < 7)  return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 // ─── Metric tile ──────────────────────────────────────────────────────────────
@@ -128,9 +142,9 @@ function ScoreRing({ score }: { score: number }) {
 type TileStatus = "good" | "warning" | "critical" | "neutral";
 
 const TILE_COLORS: Record<TileStatus, string> = {
-  good:     "border-green-500/25 bg-green-500/8  text-green-400",
-  warning:  "border-amber-400/25 bg-amber-400/8  text-amber-400",
-  critical: "border-red-500/25   bg-red-500/8    text-red-400",
+  good:     "border-green-500/30 bg-green-500/8  text-green-400",
+  warning:  "border-amber-400/30 bg-amber-400/8  text-amber-400",
+  critical: "border-red-500/30   bg-red-500/8    text-red-400",
   neutral:  "border-border       bg-surfaceElevated text-textPrimary",
 };
 
@@ -143,10 +157,10 @@ function MetricTile({
   status?: TileStatus;
 }) {
   return (
-    <div className={cn("flex items-center gap-2 rounded-lg border px-3 py-2", TILE_COLORS[status])}>
-      <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
+    <div className={cn("flex items-center gap-2 rounded-lg border px-2.5 py-1.5", TILE_COLORS[status])}>
+      <Icon className="h-3 w-3 shrink-0 opacity-60" />
       <div className="min-w-0">
-        <p className="text-[9px] font-semibold uppercase tracking-widest opacity-60 leading-none">{label}</p>
+        <p className="text-[9px] font-semibold uppercase tracking-widest opacity-50 leading-none">{label}</p>
         <p className="mt-0.5 text-[12px] font-bold tabular-nums leading-none">{value}</p>
       </div>
     </div>
@@ -170,9 +184,11 @@ export function AdSuggestionsCard({
   adId, adName, platform, context, onClose, className
 }: AdSuggestionsCardProps) {
   const [suggestions, setSuggestions] = useState<AdSuggestion[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [cached,  setCached]          = useState(false);
-  const [failed,  setFailed]          = useState(false);
+  const [loading,     setLoading]     = useState(true);
+  const [refreshing,  setRefreshing]  = useState(false);
+  const [cached,      setCached]      = useState(false);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [failed,      setFailed]      = useState(false);
 
   const fetchedFor   = useRef<string>("");
   const contextRef   = useRef(context);
@@ -181,19 +197,26 @@ export function AdSuggestionsCard({
   const score   = computeScore(context);
   const metaCtx = context.platform === "meta" ? (context as MetaAdContext) : null;
   const hasAI   = !!(metaCtx?.adTranscript);
-
   const fetchKey = `${adId}__${hasAI ? "ai" : "no-ai"}`;
 
-  useEffect(() => {
-    if (fetchedFor.current === fetchKey) return;
+  const doFetch = useCallback((force = false) => {
+    if (!force && fetchedFor.current === fetchKey) return;
     fetchedFor.current = fetchKey;
 
-    setLoading(true); setFailed(false); setSuggestions([]);
+    if (force) setRefreshing(true); else setLoading(true);
+    setFailed(false);
+    if (!force) setSuggestions([]);
+
     let cancelled = false;
     const ctrl  = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 30_000);
 
-    const body: Record<string, unknown> = { platform, adId, adContext: contextRef.current };
+    const body: Record<string, unknown> = {
+      platform,
+      adId,
+      adContext: contextRef.current,
+      ...(force ? { force: true } : {})
+    };
     const transcript = (contextRef.current as MetaAdContext).adTranscript;
     if (transcript) body.adTranscript = transcript;
 
@@ -209,18 +232,34 @@ export function AdSuggestionsCard({
         const data = (await res.json()) as SuggestionsResponse;
         setSuggestions(data.suggestions);
         setCached(data.cached);
+        setGeneratedAt(data.generatedAt ?? null);
         setLoading(false);
+        setRefreshing(false);
       })
-      .catch(() => { if (!cancelled) { setFailed(true); setLoading(false); } })
+      .catch(() => {
+        if (!cancelled) {
+          setFailed(true);
+          setLoading(false);
+          setRefreshing(false);
+        }
+      })
       .finally(() => clearTimeout(timer));
 
-    return () => { cancelled = true; fetchedFor.current = ""; ctrl.abort(); clearTimeout(timer); };
+    return () => { cancelled = true; ctrl.abort(); clearTimeout(timer); };
+  }, [adId, platform, fetchKey]);
+
+  useEffect(() => {
+    const cleanup = doFetch(false);
+    return () => {
+      fetchedFor.current = "";
+      cleanup?.();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adId, platform, fetchKey]);
 
-  const critCount  = suggestions.filter(s => s.severity === "critical").length;
-  const warnCount  = suggestions.filter(s => s.severity === "warning").length;
-  const goodCount  = suggestions.filter(s => s.severity === "good").length;
+  const critCount = suggestions.filter(s => s.severity === "critical").length;
+  const warnCount = suggestions.filter(s => s.severity === "warning").length;
+  const goodCount = suggestions.filter(s => s.severity === "good").length;
 
   return (
     <div className={cn(
@@ -228,9 +267,9 @@ export function AdSuggestionsCard({
       className
     )}>
 
-      {/* ── Header ───────────────────────────────────────────────────────── */}
+      {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden border-b border-border bg-surfaceElevated px-5 py-4">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand/10 via-transparent to-purple-500/5" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand/8 via-transparent to-purple-500/4" />
 
         <div className="relative flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
@@ -251,11 +290,6 @@ export function AdSuggestionsCard({
                   + Video Analysis
                 </span>
               )}
-              {cached && !loading && (
-                <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[9px] text-textMuted">
-                  cached
-                </span>
-              )}
             </div>
 
             {/* Ad name */}
@@ -264,36 +298,55 @@ export function AdSuggestionsCard({
               {adName}
             </p>
 
-            {/* Summary pills */}
-            {!loading && !failed && (critCount > 0 || warnCount > 0 || goodCount > 0) && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
+            {/* Summary pills + cache timestamp */}
+            {!loading && !failed && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {critCount > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-red-500/20
-                                   bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-400">
+                                   bg-red-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-red-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
                     {critCount} critical
                   </span>
                 )}
                 {warnCount > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20
-                                   bg-amber-400/10 px-2.5 py-1 text-[10px] font-semibold text-amber-400">
+                                   bg-amber-400/10 px-2.5 py-0.5 text-[10px] font-semibold text-amber-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                     {warnCount} warning{warnCount > 1 ? "s" : ""}
                   </span>
                 )}
                 {goodCount > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-green-500/20
-                                   bg-green-500/10 px-2.5 py-1 text-[10px] font-semibold text-green-400">
+                                   bg-green-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-green-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
                     {goodCount} positive
+                  </span>
+                )}
+                {generatedAt && (
+                  <span className="ml-1 text-[10px] text-textMuted">
+                    {cached ? "Cached" : "Analyzed"} · {relativeTime(generatedAt)}
                   </span>
                 )}
               </div>
             )}
           </div>
 
-          <div className="flex shrink-0 items-start gap-3">
+          {/* Right side: score ring + refresh + close */}
+          <div className="flex shrink-0 items-start gap-2">
             {score !== null && !loading && <ScoreRing score={score} />}
+            {!loading && (
+              <button
+                type="button"
+                onClick={() => doFetch(true)}
+                disabled={refreshing}
+                aria-label="Re-analyze"
+                title="Generate fresh suggestions"
+                className="mt-0.5 rounded-lg p-1.5 text-textMuted transition-colors
+                           hover:bg-border/40 hover:text-textPrimary disabled:opacity-40"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+              </button>
+            )}
             <button
               type="button" onClick={onClose} aria-label="Close"
               className="mt-0.5 rounded-lg p-1.5 text-textMuted transition-colors
@@ -304,16 +357,15 @@ export function AdSuggestionsCard({
         </div>
       </div>
 
-      {/* ── Key metrics strip ─────────────────────────────────────────────── */}
+      {/* ── Key metrics strip ─────────────────────────────────────────────────── */}
       {metaCtx && !loading && (
-        <div className="border-b border-border bg-surface/60 px-5 py-3">
-          <div className="flex flex-wrap gap-2">
+        <div className="border-b border-border bg-surface/50 px-5 py-2.5">
+          <div className="flex flex-wrap gap-1.5">
             <MetricTile
               icon={Eye} label="CTR" value={`${metaCtx.ctrPct.toFixed(2)}%`}
               status={
-                metaCtx.ctrPct >= (metaCtx.accountAverageCtrPct || 0) * 1.3 ? "good" :
                 metaCtx.ctrPct < 0.8 ? "critical" :
-                metaCtx.ctrPct < (metaCtx.accountAverageCtrPct || 0) * 0.6 ? "warning" : "neutral"
+                metaCtx.ctrPct < 1.2 ? "warning" : "neutral"
               }
             />
             <MetricTile
@@ -350,15 +402,15 @@ export function AdSuggestionsCard({
         </div>
       )}
 
-      {/* ── Suggestions body ──────────────────────────────────────────────── */}
+      {/* ── Body ─────────────────────────────────────────────────────────────── */}
       <div className="p-4">
 
-        {/* Loading */}
+        {/* Loading skeleton */}
         {loading && (
           <div className="space-y-2.5">
             {[0, 1, 2].map((n) => (
               <div key={n} className="flex gap-3 rounded-xl border border-border p-3.5"
-                   style={{ opacity: 1 - n * 0.18 }}>
+                   style={{ opacity: 1 - n * 0.2 }}>
                 <div className="h-8 w-8 shrink-0 animate-pulse rounded-lg bg-surfaceElevated"
                      style={{ animationDelay: `${n * 80}ms` }} />
                 <div className="flex-1 space-y-2 pt-0.5">
@@ -370,7 +422,7 @@ export function AdSuggestionsCard({
                   </div>
                   <div className="h-2.5 w-full animate-pulse rounded bg-surfaceElevated"
                        style={{ animationDelay: `${n * 150}ms` }} />
-                  <div className="h-2.5 w-3/4 animate-pulse rounded bg-surfaceElevated"
+                  <div className="h-2.5 w-4/5 animate-pulse rounded bg-surfaceElevated"
                        style={{ animationDelay: `${n * 180}ms` }} />
                 </div>
               </div>
@@ -387,12 +439,19 @@ export function AdSuggestionsCard({
             <AlertTriangle className="mx-auto h-6 w-6 text-textMuted" />
             <p className="mt-2 text-sm font-semibold text-textPrimary">Analysis unavailable</p>
             <p className="mt-1 text-xs text-textMuted">
-              Suggestions couldn&apos;t be loaded right now. Your metrics are unaffected.
+              Could not load suggestions right now. Your metrics are unaffected.
             </p>
+            <button
+              onClick={() => doFetch(true)}
+              className="mt-3 rounded-lg border border-border bg-surface px-3 py-1.5
+                         text-xs font-medium text-textPrimary transition-colors hover:bg-surfaceElevated"
+            >
+              Try again
+            </button>
           </div>
         )}
 
-        {/* Healthy — no issues */}
+        {/* All clear */}
         {!loading && !failed && suggestions.length === 0 && (
           <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-5 text-center">
             <CheckCircle className="mx-auto h-6 w-6 text-green-400" />
@@ -400,6 +459,14 @@ export function AdSuggestionsCard({
             <p className="mt-1 text-xs text-textMuted">
               No issues detected — this ad is performing well across all funnel stages.
             </p>
+          </div>
+        )}
+
+        {/* Refreshing overlay (keeps old cards visible) */}
+        {refreshing && suggestions.length > 0 && (
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-surfaceElevated px-3 py-2">
+            <RefreshCw className="h-3.5 w-3.5 animate-spin text-brand" />
+            <span className="text-xs text-textMuted">Generating fresh analysis…</span>
           </div>
         )}
 
@@ -419,7 +486,6 @@ export function AdSuggestionsCard({
                   <div className={cn("absolute inset-y-0 left-0 w-[3px] rounded-l-xl", cfg.bar)} />
 
                   <div className="flex items-start gap-3 py-3.5 pl-4 pr-4">
-
                     {/* Priority number */}
                     <div className={cn(
                       "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center",
@@ -430,13 +496,12 @@ export function AdSuggestionsCard({
                     </div>
 
                     <div className="min-w-0 flex-1">
-
                       {/* Action title */}
                       <p className="text-[13px] font-semibold leading-snug text-textPrimary">
                         {s.action}
                       </p>
 
-                      {/* Chips */}
+                      {/* Chips row */}
                       <div className="mt-1.5 flex flex-wrap items-center gap-1">
                         {s.affects && (
                           <span className={cn(
@@ -470,15 +535,8 @@ export function AdSuggestionsCard({
                         )}
                       </div>
 
-                      {/* Metric label */}
-                      {s.affects && s.affects !== "All metrics" && (
-                        <p className="mt-1 text-[10px] font-medium uppercase tracking-widest text-textMuted/60">
-                          {s.affects}
-                        </p>
-                      )}
-
                       {/* Detail */}
-                      <p className="mt-1.5 text-xs leading-relaxed text-textSecondary">
+                      <p className="mt-2 text-xs leading-relaxed text-textSecondary">
                         {s.detail}
                       </p>
 
@@ -495,6 +553,26 @@ export function AdSuggestionsCard({
               );
             })}
           </ul>
+        )}
+
+        {/* Footer: re-analyze prompt when showing cached */}
+        {!loading && !failed && cached && suggestions.length > 0 && (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-border/50
+                          bg-surfaceElevated/50 px-3 py-2">
+            <span className="text-[10px] text-textMuted">
+              Same suggestions shown every visit · regenerates only when you refresh
+            </span>
+            <button
+              onClick={() => doFetch(true)}
+              disabled={refreshing}
+              className="ml-3 flex items-center gap-1.5 rounded-md border border-border bg-surface
+                         px-2.5 py-1 text-[10px] font-semibold text-textPrimary transition-colors
+                         hover:bg-surfaceElevated disabled:opacity-40"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Re-analyze
+            </button>
+          </div>
         )}
       </div>
     </div>
