@@ -127,6 +127,19 @@ export interface GoogleAdsKeywordRow {
   pulledAt: string;
 }
 
+export interface GoogleAdsPreviewRow {
+  id: string;
+  adId: string;
+  adName: string;
+  adType: string;
+  youtubeId: string;
+  imageUrls: string[];
+  adLink: string;
+  headlines: string[];
+  descriptions: string[];
+  ctaText: string;
+}
+
 export interface AggregatedMetricRow {
   label: string;
   cost: number;

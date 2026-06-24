@@ -30,7 +30,8 @@ export const AIRTABLE_BASES = {
       campaigns: "Google Ads Campaign Analytics",
       adGroups: "Google Ads Ad Group Analytics",
       creatives: "Google Ads Ad Creative Analytics",
-      keywords: "Google Ads Keyword Performance"
+      keywords: "Google Ads Keyword Performance",
+      adPreview: "Google Ad Preview"
     }
   },
   criteo: {

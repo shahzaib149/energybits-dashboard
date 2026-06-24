@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, MousePointer, Eye, DollarSign, TrendingUp, BarChart2, Target } from "lucide-react";
-import type { GoogleAdsCreativeRow, GoogleAdsCampaignRow } from "@/lib/google-ads/types";
+import type { GoogleAdsCreativeRow, GoogleAdsCampaignRow, GoogleAdsPreviewRow } from "@/lib/google-ads/types";
 import type { GoogleAdContext } from "@/lib/suggestions/types";
+import { GoogleAdPreview } from "@/components/google-ads/creatives/GoogleAdPreview";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AdSuggestionsCard } from "@/components/suggestions/AdSuggestionsCard";
@@ -64,7 +65,7 @@ function buildContext(
 export function CreativeDetailClient({
   adName,
   rows,
-  campaigns
+  campaigns,
 }: {
   adName: string;
   rows: GoogleAdsCreativeRow[];
@@ -73,12 +74,53 @@ export function CreativeDetailClient({
   const agg = aggregateRows(rows);
   const context = buildContext(adName, rows, campaigns, agg);
   const first = rows[0];
+
+  // Fetch preview client-side to avoid server module caching issues
+  const [preview, setPreview] = useState<GoogleAdsPreviewRow | null>(null);
+  useEffect(() => {
+    const adId = first?.adId ?? "";
+    const params = new URLSearchParams();
+    if (adId)   params.set("adId", adId);
+    if (adName) params.set("adName", adName);
+    fetch(`/api/google-ads/preview?${params.toString()}`)
+      .then(r => r.json())
+      .then((data: { preview: GoogleAdsPreviewRow | null }) => {
+        if (data.preview) setPreview(data.preview);
+      })
+      .catch(() => {/* silent */});
+  }, [adName, first?.adId]);
   const dateRange =
     rows.length > 0
       ? `${formatDate(rows[rows.length - 1].date)} – ${formatDate(rows[0].date)}`
       : null;
 
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [breakdownPage, setBreakdownPage] = useState(0);
+  const ROWS_PER_PAGE = 10;
+
+  // Aggregate rows by date so same-day multi-adgroup rows collapse
+  const dailyRows = useMemo(() => {
+    const map = new Map<string, typeof rows[number] & { _count: number }>();
+    for (const r of rows) {
+      const key = r.date;
+      const ex = map.get(key);
+      if (!ex) {
+        map.set(key, { ...r, _count: 1 });
+      } else {
+        ex.cost += r.cost;
+        ex.impressions += r.impressions;
+        ex.clicks += r.clicks;
+        ex.conversions += r.conversions;
+        ex.conversionValue += r.conversionValue;
+        ex.roas = ex.cost > 0 ? ex.conversionValue / ex.cost : 0;
+        ex._count++;
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
+  }, [rows]);
+
+  const totalBreakdownPages = Math.ceil(dailyRows.length / ROWS_PER_PAGE);
+  const pagedRows = dailyRows.slice(breakdownPage * ROWS_PER_PAGE, (breakdownPage + 1) * ROWS_PER_PAGE);
 
   if (rows.length === 0) {
     return (
@@ -120,6 +162,9 @@ export function CreativeDetailClient({
         </div>
       </div>
 
+      {/* Ad Preview */}
+      <GoogleAdPreview preview={preview} adName={adName} />
+
       {/* Creative tag suggestions from Airtable */}
       {first?.creativeTagSuggestions && (
         <section className="rounded-xl border border-border bg-surface p-4">
@@ -145,10 +190,33 @@ export function CreativeDetailClient({
         </div>
       </section>
 
-      {/* Daily breakdown */}
-      {rows.length > 1 && (
+      {/* Daily breakdown — paginated, deduplicated by date */}
+      {dailyRows.length > 0 && (
         <section className="rounded-xl border border-border bg-surface p-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-textSecondary">Daily Breakdown</p>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-textSecondary">
+              Daily Breakdown <span className="ml-1 font-normal text-textMuted">({dailyRows.length} days)</span>
+            </p>
+            {totalBreakdownPages > 1 && (
+              <div className="flex items-center gap-2 text-xs text-textMuted">
+                <button
+                  onClick={() => setBreakdownPage(p => Math.max(0, p - 1))}
+                  disabled={breakdownPage === 0}
+                  className="rounded border border-border px-2 py-0.5 hover:bg-surfaceElevated disabled:opacity-40"
+                >
+                  ‹ Prev
+                </button>
+                <span>{breakdownPage + 1} / {totalBreakdownPages}</span>
+                <button
+                  onClick={() => setBreakdownPage(p => Math.min(totalBreakdownPages - 1, p + 1))}
+                  disabled={breakdownPage === totalBreakdownPages - 1}
+                  className="rounded border border-border px-2 py-0.5 hover:bg-surfaceElevated disabled:opacity-40"
+                >
+                  Next ›
+                </button>
+              </div>
+            )}
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -162,8 +230,8 @@ export function CreativeDetailClient({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id} className="border-b border-border last:border-0">
+                {pagedRows.map((row) => (
+                  <tr key={row.date} className="border-b border-border last:border-0">
                     <td className="py-2 pr-4 text-textSecondary">{row.date}</td>
                     <td className="py-2 pr-4 tabular-nums text-textPrimary">{formatCurrency(row.cost)}</td>
                     <td className="py-2 pr-4 tabular-nums text-textSecondary">{formatNumber(row.impressions)}</td>

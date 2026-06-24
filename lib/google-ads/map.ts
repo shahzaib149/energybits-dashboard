@@ -3,11 +3,14 @@ import type {
   GoogleAdsAdGroupRow,
   GoogleAdsCampaignRow,
   GoogleAdsCreativeRow,
-  GoogleAdsKeywordRow
+  GoogleAdsKeywordRow,
+  GoogleAdsPreviewRow
 } from "@/lib/google-ads/types";
 
 function asString(value: unknown): string {
   if (value == null) return "";
+  if (Array.isArray(value)) return value.map(v => (v != null ? String(v) : "")).filter(Boolean).join(", ");
+  if (typeof value === "object") return "";
   return String(value);
 }
 
@@ -139,6 +142,64 @@ export function mapCreativeRecord(record: AirtableRecordRaw): GoogleAdsCreativeR
     pulledAt: asString(f["Pulled At"]),
     creativeTagSuggestions: asString(f["Creative Tag Suggestions"])
   };
+}
+
+/** Maps the "Google Ad Preview" Airtable table.
+ *  Field names confirmed from debug endpoint output. */
+export function mapPreviewRecord(record: AirtableRecordRaw): GoogleAdsPreviewRow {
+  const f = record.fields;
+
+  const adId   = asString(f["Ad ID"]);
+  const adName = asString(f["Ad Name"]);
+  const adType = asString(f["Ad Type"]);
+  const adLink = asString(f["Target URL"] ?? f["Ad Link"] ?? f["Final URL"] ?? "");
+  const ctaText = asString(f["CTA Text"]);
+
+  // YouTube — actual field is "Youtube video Id"
+  const youtubeId = asString(
+    f["Youtube video Id"] ?? f["YouTube ID"] ?? f["YouTube Video ID"] ??
+    f["youtube_id"] ?? f["Video ID"] ?? ""
+  );
+
+  // Image URL — actual field is "Image URL" (url type, plain string)
+  const imageUrls: string[] = [];
+  const imgUrl = asString(f["Image URL"] ?? "");
+  if (imgUrl) imageUrls.push(imgUrl);
+
+  // Also scan for Airtable attachment fields in case table changes
+  if (imageUrls.length === 0) {
+    for (const k of Object.keys(f)) {
+      const val = f[k];
+      if (Array.isArray(val) && val.length > 0) {
+        const first = val[0];
+        if (first && typeof first === "object" && "url" in first &&
+            typeof (first as Record<string, unknown>).url === "string") {
+          for (const att of val) {
+            if (att && typeof att === "object" && "url" in att) {
+              imageUrls.push((att as { url: string }).url);
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // Headlines: "Headline 1" … "Headline 15"
+  const headlines: string[] = [];
+  for (let i = 1; i <= 15; i++) {
+    const h = asString(f[`Headline ${i}`] ?? "");
+    if (h) headlines.push(h);
+  }
+
+  // Descriptions: "Description 1" … "Description 4"
+  const descriptions: string[] = [];
+  for (let i = 1; i <= 4; i++) {
+    const d = asString(f[`Description ${i}`] ?? "");
+    if (d) descriptions.push(d);
+  }
+
+  return { id: record.id, adId, adName, adType, youtubeId, imageUrls, adLink, headlines, descriptions, ctaText };
 }
 
 export function mapKeywordRecord(record: AirtableRecordRaw): GoogleAdsKeywordRow {

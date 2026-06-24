@@ -41,7 +41,36 @@ export function CreativesTab({
     .slice(0, 8)
     .map((row) => ({ name: truncateLabel(row.label), fullName: row.label, clicks: row.clicks, roas: row.roas }));
 
-  const sorted = [...creatives].sort((a, b) => b.clicks - a.clicks);
+  // Aggregate all daily rows → one row per unique ad name
+  const adMap = new Map<string, {
+    adName: string; adType: string; campaignName: string;
+    clicks: number; cost: number; impressions: number;
+    conversions: number; conversionValue: number;
+  }>();
+  for (const row of creatives) {
+    const key = row.adName || row.adId || row.id;
+    const existing = adMap.get(key);
+    if (!existing) {
+      adMap.set(key, {
+        adName: row.adName, adType: row.adType, campaignName: row.campaignName,
+        clicks: row.clicks, cost: row.cost, impressions: row.impressions,
+        conversions: row.conversions, conversionValue: row.conversionValue
+      });
+    } else {
+      existing.clicks += row.clicks;
+      existing.cost += row.cost;
+      existing.impressions += row.impressions;
+      existing.conversions += row.conversions;
+      existing.conversionValue += row.conversionValue;
+    }
+  }
+  const aggregatedCreatives = Array.from(adMap.values())
+    .map(r => ({
+      ...r,
+      roas: r.cost > 0 ? r.conversionValue / r.cost : 0,
+      ctrPct: r.impressions > 0 ? (r.clicks / r.impressions) * 100 : 0,
+    }))
+    .sort((a, b) => b.clicks - a.clicks);
 
   return (
     <div className="space-y-6">
@@ -106,18 +135,18 @@ export function CreativesTab({
           subtitle={tableCopy.subtitle}
           actions={
             <CSVExportButton
-              data={sorted}
+              data={creatives}
               columns={creativeColumns}
               filename={adsFilename("creatives", dateRange)}
               resourceType="google-ads-creatives"
             />
           }
         />
-        {sorted.length === 0 ? (
+        {aggregatedCreatives.length === 0 ? (
           <p className="text-sm text-textMuted">{COPY.dateRange.emptyForRange}</p>
         ) : (
           <PaginatedTable
-            rows={sorted}
+            rows={aggregatedCreatives}
             columns={[
               {
                 id: "ad",
@@ -126,7 +155,7 @@ export function CreativesTab({
                 render: (row) => (
                   <Link
                     href={`/google-ads-analytics/creative-detail?name=${encodeURIComponent(row.adName)}`}
-                    className="block max-w-[160px] truncate font-medium text-brand hover:underline"
+                    className="block max-w-[180px] truncate font-medium text-brand hover:underline"
                     title={row.adName}
                   >
                     {row.adName}
@@ -144,7 +173,7 @@ export function CreativesTab({
                 header: "Campaign",
                 searchValue: (row) => row.campaignName,
                 render: (row) => (
-                  <span className="block max-w-[130px] truncate text-textSecondary" title={row.campaignName}>
+                  <span className="block max-w-[140px] truncate text-textSecondary" title={row.campaignName}>
                     {row.campaignName}
                   </span>
                 )
@@ -174,7 +203,7 @@ export function CreativesTab({
                 render: (row) => formatRoas(row.roas)
               }
             ]}
-            getRowKey={(row) => row.id}
+            getRowKey={(row) => row.adName}
             searchPlaceholder="Search ads or campaigns…"
           />
         )}

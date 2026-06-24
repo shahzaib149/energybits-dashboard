@@ -12,7 +12,7 @@ export async function generateMetadata({
 }: {
   searchParams: Record<string, string | undefined>;
 }): Promise<Metadata> {
-  const name = searchParams.name ? decodeURIComponent(searchParams.name) : "Ad Detail";
+  const name = searchParams.name ? searchParams.name : "Ad Detail";
   return { title: `${name} — Meta Ad` };
 }
 
@@ -21,7 +21,7 @@ export default async function MetaAdDetailPage({
 }: {
   searchParams: Record<string, string | undefined>;
 }) {
-  const adName = searchParams.name ? decodeURIComponent(searchParams.name) : "";
+  const adName = searchParams.name ? searchParams.name : "";
 
   if (!isMetaAnalyticsConfigured() || !adName) {
     return (

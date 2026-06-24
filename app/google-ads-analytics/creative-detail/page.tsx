@@ -12,7 +12,7 @@ export async function generateMetadata({
 }: {
   searchParams: Record<string, string | undefined>;
 }): Promise<Metadata> {
-  const name = searchParams.name ? decodeURIComponent(searchParams.name) : "Creative Detail";
+  const name = searchParams.name ?? "Creative Detail";
   return { title: `${name} — Google Ad` };
 }
 
@@ -21,7 +21,7 @@ export default async function GoogleCreativeDetailPage({
 }: {
   searchParams: Record<string, string | undefined>;
 }) {
-  const adName = searchParams.name ? decodeURIComponent(searchParams.name) : "";
+  const adName = searchParams.name ?? "";
 
   if (!isGoogleAdsConfigured() || !adName) {
     return (
