@@ -54,9 +54,11 @@ function buildContext(
     roas: agg.roas,
     optimizationScore: campaign?.optimizationScore ?? 0,
     creativeTagSuggestions: first?.creativeTagSuggestions ?? "",
-    accountAverageCtrPct: agg.ctrPct,
-    accountAverageRoas: agg.roas,
-    accountAverageConversionRatePct: agg.conversionRatePct
+    // Account-level averages: set to 0 (unknown) so the rules engine uses
+    // absolute thresholds rather than comparing this ad to itself.
+    accountAverageCtrPct: 0,
+    accountAverageRoas: 0,
+    accountAverageConversionRatePct: 0
   };
 }
 

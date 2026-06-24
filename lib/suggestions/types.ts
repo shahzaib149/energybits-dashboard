@@ -75,10 +75,50 @@ export interface GoogleAdContext {
   /** From GoogleAdsCampaignRow.optimizationScore — 0 means not available */
   optimizationScore: number;
   creativeTagSuggestions: string;
-  /** Account-level averages computed from all creatives in the current period */
+  /** Account-level averages (0 = unknown; rules fall back to absolute thresholds) */
   accountAverageCtrPct: number;
   accountAverageRoas: number;
   accountAverageConversionRatePct: number;
+
+  // ── Campaign-level trailing baseline (preferred over account avg when available) ──
+  /** Campaign's own trailing-period avg CTR — used for relative 4-state diagnostic */
+  campaignBaselineCtrPct?: number;
+  /** Campaign's own trailing-period avg conversion rate */
+  campaignBaselineCvr?: number;
+
+  // ── Frequency (video / display fatigue) ──────────────────────────────────
+  frequency?: number;
+
+  // ── Video completion quartiles (% of views that reached each mark) ────────
+  videoQ25?: number;
+  videoQ50?: number;
+  videoQ75?: number;
+  videoQ100?: number;
+
+  // ── Quality Score sub-components ─────────────────────────────────────────
+  /** "Below Average" | "Average" | "Above Average" */
+  qualityScoreAdRelevance?: string;
+  qualityScoreLandingPage?: string;
+  qualityScoreExpectedCtr?: string;
+
+  // ── Lost Impression Share ──────────────────────────────────────────────────
+  impressionShareLostBudget?: number;  // %
+  impressionShareLostRank?: number;    // %
+
+  // ── Ad Strength / Asset Group Strength ────────────────────────────────────
+  /** "Poor" | "Low" | "Good" | "Best" */
+  adStrength?: string;
+
+  // ── Search Terms ──────────────────────────────────────────────────────────
+  /** Trending + converting search terms (comma-separated) */
+  trendingSearchTerms?: string;
+  /** High-spend, zero-conversion terms to negate (comma-separated) */
+  wastedSpendSearchTerms?: string;
+
+  // ── Demand Gen platform breakdown ─────────────────────────────────────────
+  demandGenDiscoverConversions?: number;
+  demandGenGmailConversions?: number;
+  demandGenYouTubeConversions?: number;
 }
 
 export type AdContext = MetaAdContext | GoogleAdContext;

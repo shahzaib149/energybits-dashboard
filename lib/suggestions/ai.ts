@@ -62,27 +62,93 @@ Return ONLY a JSON array, no markdown. 1–4 items. Return [] only if nothing ge
 [{"severity":"...","action":"...","affects":"...","detail":"..."}]`;
   }
 
-  return `You are a direct-response digital advertising consultant for ENERGYbits (spirulina/chlorella supplements).
+  // Compute CTR/CVR diagnostic state for the prompt
+  const _baselineCtr = (ctx.campaignBaselineCtrPct ?? 0) > 0 ? ctx.campaignBaselineCtrPct! : ctx.accountAverageCtrPct;
+  const _baselineCvr = (ctx.campaignBaselineCvr ?? 0) > 0 ? ctx.campaignBaselineCvr! : ctx.accountAverageConversionRatePct;
+  const _ctrLow  = _baselineCtr > 0 ? ctx.ctrPct < _baselineCtr * 0.75 : ctx.ctrPct < 1.0;
+  const _ctrHigh = _baselineCtr > 0 ? ctx.ctrPct > _baselineCtr * 1.25 : ctx.ctrPct >= 2.0;
+  const _cvrLow  = _baselineCvr > 0 && ctx.conversions > 0 && ctx.conversionRatePct < _baselineCvr * 0.75;
+  const _cvrHigh = _baselineCvr > 0 && ctx.conversions > 0 && ctx.conversionRatePct > _baselineCvr * 1.25;
+  const ctrCvrState =
+    _ctrLow && _cvrLow   ? "LOW_CTR_LOW_CVR (structural/targeting issue)" :
+    _ctrLow && !_cvrLow  ? "LOW_CTR_NORMAL_CVR (ad copy/creative issue)" :
+    _ctrHigh && _cvrLow  ? "HIGH_CTR_LOW_CVR (landing page/intent mismatch)" :
+    _ctrHigh && _cvrHigh ? "HIGH_CTR_HIGH_CVR (scale it)" : "NORMAL";
 
-Platform: Google Ads
-Ad name: ${ctx.adName} | Type: ${ctx.adType}
+  const qsLine = [
+    ctx.qualityScoreAdRelevance  ? `Ad Relevance: ${ctx.qualityScoreAdRelevance}` : "",
+    ctx.qualityScoreLandingPage  ? `Landing Page: ${ctx.qualityScoreLandingPage}` : "",
+    ctx.qualityScoreExpectedCtr  ? `Expected CTR: ${ctx.qualityScoreExpectedCtr}` : "",
+  ].filter(Boolean).join(" | ") || "n/a";
+
+  const isLine = [
+    (ctx.impressionShareLostBudget ?? 0) > 0 ? `Budget: ${ctx.impressionShareLostBudget!.toFixed(0)}%` : "",
+    (ctx.impressionShareLostRank   ?? 0) > 0 ? `Rank: ${ctx.impressionShareLostRank!.toFixed(0)}%` : "",
+  ].filter(Boolean).join(" | ") || "n/a";
+
+  const videoLine = (() => {
+    const parts = [];
+    if (ctx.videoQ25)  parts.push(`25%: ${ctx.videoQ25.toFixed(0)}%`);
+    if (ctx.videoQ50)  parts.push(`50%: ${ctx.videoQ50.toFixed(0)}%`);
+    if (ctx.videoQ75)  parts.push(`75%: ${ctx.videoQ75.toFixed(0)}%`);
+    if (ctx.videoQ100) parts.push(`100%: ${ctx.videoQ100.toFixed(0)}%`);
+    return parts.length ? parts.join(" | ") : "n/a";
+  })();
+
+  const dgLine = (() => {
+    const d = ctx.demandGenDiscoverConversions, g = ctx.demandGenGmailConversions, y = ctx.demandGenYouTubeConversions;
+    return (d || g || y) ? `Discover: ${d ?? 0} | Gmail: ${g ?? 0} | YouTube: ${y ?? 0}` : "n/a";
+  })();
+
+  return `You are a direct-response Google Ads consultant for ENERGYbits (spirulina/chlorella supplements). Diagnose this ad using ALL signals provided.
+
+AD: "${ctx.adName}" | Type: ${ctx.adType}
 Campaign: ${ctx.campaignName} | Ad Group: ${ctx.adGroupName}
-Spend: $${ctx.spend.toFixed(2)} | Impressions: ${ctx.impressions.toLocaleString()} | Clicks: ${ctx.clicks.toLocaleString()}
-CTR: ${ctx.ctrPct.toFixed(2)}% (account avg: ${ctx.accountAverageCtrPct.toFixed(2)}%)
-Avg CPC: $${ctx.averageCpc.toFixed(2)} | ROAS: ${ctx.roas.toFixed(2)}x (account avg: ${ctx.accountAverageRoas.toFixed(2)}x)
-Conversions: ${ctx.conversions} | Conversion rate: ${ctx.conversionRatePct.toFixed(2)}% (account avg: ${ctx.accountAverageConversionRatePct.toFixed(2)}%)
-Cost per conversion: $${ctx.costPerConversion.toFixed(2)}
-Campaign optimization score: ${ctx.optimizationScore > 0 ? ctx.optimizationScore.toFixed(0) + "%" : "not available"}
-Creative tag suggestions (synced from platform): ${ctx.creativeTagSuggestions || "none"}
 
-PHRASING RULES:
-- "action": direct command starting with a verb, max 6 words. E.g. "Add negative keywords now", "Test new RSA headlines", "Pause unprofitable ad group". No full sentences.
-- "affects": the specific lever. Use: "ROAS", "CTR", "Conversions", "CPC", or "Opt. Score".
-- "detail": ONE sentence, max 22 words, with a specific number from this ad's data.
-- "severity": unprofitable/broken = critical; underperforming = warning; strong performance = good; data note = info.
+PERFORMANCE:
+Spend: $${ctx.spend.toFixed(2)} | Impressions: ${ctx.impressions.toLocaleString()} | Clicks: ${ctx.clicks.toLocaleString()}
+CTR: ${ctx.ctrPct.toFixed(2)}% | Baseline CTR: ${_baselineCtr > 0 ? _baselineCtr.toFixed(2) + "%" : "n/a"}
+Avg CPC: $${ctx.averageCpc.toFixed(2)}
+ROAS: ${ctx.roas.toFixed(2)}x | Acct avg ROAS: ${ctx.accountAverageRoas > 0 ? ctx.accountAverageRoas.toFixed(2) + "x" : "n/a"}
+Conversions: ${ctx.conversions} | CVR: ${ctx.conversionRatePct.toFixed(2)}% | Baseline CVR: ${_baselineCvr > 0 ? _baselineCvr.toFixed(2) + "%" : "n/a"}
+Cost/Conv: $${ctx.costPerConversion.toFixed(2)}
+
+EXTENDED SIGNALS:
+CTR/CVR State: ${ctrCvrState}
+Quality Score sub-components: ${qsLine}
+Impression Share lost (Budget | Rank): ${isLine}
+Ad Strength: ${ctx.adStrength ?? "n/a"}
+Video completion (25/50/75/100%): ${videoLine}
+Frequency: ${(ctx.frequency ?? 0) > 0 ? ctx.frequency!.toFixed(1) + "x" : "n/a"}
+Demand Gen by platform: ${dgLine}
+Trending search terms: ${ctx.trendingSearchTerms ?? "none"}
+Wasted-spend search terms: ${ctx.wastedSpendSearchTerms ?? "none"}
+Opt. Score: ${ctx.optimizationScore > 0 ? ctx.optimizationScore.toFixed(0) + "%" : "n/a"}
+Creative tags: ${ctx.creativeTagSuggestions || "none"}
+
+RULES:
+- CTR/CVR state drives the PRIMARY recommendation: LOW_CTR_LOW_CVR = targeting; LOW_CTR = copy; HIGH_CTR_LOW_CVR = landing page; HIGH_CTR_HIGH_CVR = scale.
+- Quality Score "Below Average" sub-component → specific fix for that sub-component.
+- IS Lost Budget >20% → increase budget. IS Lost Rank >20% → improve QS or bid.
+- Ad Strength "Poor" → critical; "Low" → warning; "Best" → good.
+- Video: flag drop-off WHERE it's biggest (>20pp between adjacent quartiles).
+- Frequency ≥3 = warning; ≥5 = critical (video/display only).
+- Trending terms → add as exact match. Wasted terms → add as negatives.
+- Demand Gen: platform with >60% of conversions → prioritise it.
+
+PROHIBITIONS:
+- Never mention missing data or suggest obtaining metrics.
+- Never repeat an action already listed in existing suggestions.
+- Never fire CTR warning when CTR/CVR state is HIGH_CTR_*.
+
+PHRASING:
+- "action": verb-first, max 6 words (e.g. "Add negative keywords now").
+- "affects": "CTR", "CVR", "ROAS", "Conversions", "Quality Score", "Impression Share", "Ad Strength", "Frequency", "Video Completion", "Search Terms", "Demand Gen", or "Opt. Score".
+- "detail": one sentence, max 22 words, cite a specific number.
+- "severity": critical / warning / good / info.
 ${alreadyCovered}
 
-Respond ONLY with a JSON array (no markdown). 2–4 items:
+Respond ONLY with a JSON array (no markdown). 1–4 items ([] if nothing genuinely new applies):
 [{"severity":"critical"|"warning"|"good"|"info","action":"≤6 words","affects":"metric","detail":"one sentence ≤22 words"}]`;
 }
 

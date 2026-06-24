@@ -199,6 +199,7 @@ export function runGoogleRules(ctx: GoogleAdContext): AdSuggestion[] {
   const out: AdSuggestion[] = [];
   const t = GOOGLE;
 
+  // ── Low impressions guard ──────────────────────────────────────────────────
   if (ctx.impressions < t.lowImpressionsMin) {
     out.push({
       id: rid(), severity: "info", source: "rules",
@@ -209,6 +210,76 @@ export function runGoogleRules(ctx: GoogleAdContext): AdSuggestion[] {
     return out;
   }
 
+  // ── Baseline resolution ────────────────────────────────────────────────────
+  // Campaign trailing baseline preferred; fall back to account average
+  const baselineCtr = (ctx.campaignBaselineCtrPct ?? 0) > 0
+    ? ctx.campaignBaselineCtrPct!
+    : ctx.accountAverageCtrPct;
+  const baselineCvr = (ctx.campaignBaselineCvr ?? 0) > 0
+    ? ctx.campaignBaselineCvr!
+    : ctx.accountAverageConversionRatePct;
+
+  const hasBaselineCtr = baselineCtr > 0;
+  const hasBaselineCvr = baselineCvr > 0 && ctx.conversions > 0;
+
+  // Low = <0.75× baseline (or <1.0% absolute); High = >1.25× baseline (or >2.0% absolute)
+  const ctrLow  = hasBaselineCtr ? ctx.ctrPct < baselineCtr * 0.75 : ctx.ctrPct < t.ctrAbsLow;
+  const ctrHigh = hasBaselineCtr ? ctx.ctrPct > baselineCtr * 1.25 : ctx.ctrPct >= t.ctrAbsLow * 2;
+  const cvrLow  = hasBaselineCvr && ctx.conversionRatePct < baselineCvr * 0.75;
+  const cvrHigh = hasBaselineCvr && ctx.conversionRatePct > baselineCvr * 1.25;
+
+  // ── 4-State CTR/CVR diagnostic ─────────────────────────────────────────────
+  if (ctrLow && cvrLow) {
+    // State 3: Both below baseline → structural / targeting issue
+    out.push({
+      id: rid(), severity: "critical", source: "rules",
+      action: "Audit targeting and keyword match types",
+      affects: "CTR + CVR",
+      detail: hasBaselineCtr && hasBaselineCvr
+        ? `CTR ${ctx.ctrPct.toFixed(2)}% and CVR ${ctx.conversionRatePct.toFixed(2)}% are both below campaign baseline — structural keyword and targeting review needed.`
+        : `CTR ${ctx.ctrPct.toFixed(2)}% and CVR ${ctx.conversionRatePct.toFixed(2)}% are both weak — review keyword relevance and match types.`
+    });
+  } else if (ctrLow && !cvrLow) {
+    // State 1: Low CTR only → ad copy / creative issue
+    out.push({
+      id: rid(), severity: "warning", source: "rules",
+      action: "Rewrite ad copy to match search intent",
+      affects: "CTR",
+      detail: hasBaselineCtr
+        ? `CTR ${ctx.ctrPct.toFixed(2)}% is below campaign baseline ${baselineCtr.toFixed(2)}% — landing page converts but ad copy isn't compelling enough to click.`
+        : `CTR ${ctx.ctrPct.toFixed(2)}% is below ${t.ctrAbsLow}% benchmark — rewrite headlines to match search intent more closely.`
+    });
+  } else if (ctrHigh && cvrLow) {
+    // State 2: High CTR + Low CVR → landing page / intent mismatch
+    out.push({
+      id: rid(), severity: "critical", source: "rules",
+      action: "Fix landing page and offer mismatch",
+      affects: "CVR",
+      detail: hasBaselineCtr && hasBaselineCvr
+        ? `CTR ${ctx.ctrPct.toFixed(2)}% exceeds baseline but CVR ${ctx.conversionRatePct.toFixed(2)}% is below — ad promise doesn't match the landing page experience.`
+        : `CTR is strong but CVR ${ctx.conversionRatePct.toFixed(2)}% is low — check ad-to-page promise alignment and traffic intent.`
+    });
+  } else if (ctrHigh && cvrHigh) {
+    // State 4: Both above baseline → scale it
+    out.push({
+      id: rid(), severity: "good", source: "rules",
+      action: "Scale budget — CTR and CVR both strong",
+      affects: "CTR + CVR",
+      detail: hasBaselineCtr && hasBaselineCvr
+        ? `CTR ${ctx.ctrPct.toFixed(2)}% and CVR ${ctx.conversionRatePct.toFixed(2)}% both exceed campaign baseline — increase budget or duplicate to new audiences.`
+        : `Both CTR and CVR are above average — strong on click and conversion metrics; scale budget.`
+    });
+  } else if (ctrHigh && !hasBaselineCvr) {
+    // High CTR but no CVR baseline available
+    out.push({
+      id: rid(), severity: "good", source: "rules",
+      action: "Scale budget — strong CTR signal",
+      affects: "CTR",
+      detail: `CTR ${ctx.ctrPct.toFixed(2)}% exceeds ${hasBaselineCtr ? `campaign baseline ${baselineCtr.toFixed(2)}%` : "benchmark"} — consider scaling budget or duplicating to new audiences.`
+    });
+  }
+
+  // ── ROAS ──────────────────────────────────────────────────────────────────
   if (ctx.roas > 0 && ctx.roas < t.roasUnprofitable) {
     out.push({
       id: rid(), severity: "critical", source: "rules",
@@ -225,42 +296,23 @@ export function runGoogleRules(ctx: GoogleAdContext): AdSuggestion[] {
     });
   }
 
+  // ── Zero conversions with significant spend ────────────────────────────────
   if (ctx.conversions === 0 && ctx.spend > t.zeroConversionsSpendMin) {
     out.push({
       id: rid(), severity: "warning", source: "rules",
       action: "Check conversion tracking setup",
       affects: "Conversions",
-      detail: `$${ctx.spend.toFixed(0)} spent with zero conversions — verify tracking and landing page load time.`
+      detail: `$${ctx.spend.toFixed(0)} spent with zero conversions — verify tracking tags and landing page load time.`
     });
   }
 
-  const hasAvgCtr = ctx.accountAverageCtrPct > 0;
-  if ((hasAvgCtr && ctx.ctrPct < ctx.accountAverageCtrPct * t.ctrBelowAvgFactor) || ctx.ctrPct < t.ctrAbsLow) {
-    out.push({
-      id: rid(), severity: "warning", source: "rules",
-      action: "Rewrite headlines to match intent",
-      affects: "CTR",
-      detail: hasAvgCtr
-        ? `CTR is ${ctx.ctrPct.toFixed(2)}% vs account avg ${ctx.accountAverageCtrPct.toFixed(2)}% — tighten keyword match types.`
-        : `CTR is ${ctx.ctrPct.toFixed(2)}% — rewrite headlines to match search intent more closely.`
-    });
-  }
-
-  if (ctx.optimizationScore > 0 && ctx.optimizationScore < t.optimizationScoreLow) {
-    out.push({
-      id: rid(), severity: "warning", source: "rules",
-      action: "Apply Google's pending recommendations",
-      affects: "Opt. Score",
-      detail: `Campaign optimization score is ${ctx.optimizationScore.toFixed(0)}% — apply pending recommendations in Google Ads.`
-    });
-  }
-
+  // ── Strong ROAS — scale signal ─────────────────────────────────────────────
   if (ctx.roas >= t.roasGood) {
     out.push({
       id: rid(), severity: "good", source: "rules",
       action: "Increase budget or duplicate ad group",
       affects: "ROAS",
-      detail: `ROAS of ${ctx.roas.toFixed(2)}x is performing well — scale budget or duplicate to capture more volume.`
+      detail: `ROAS of ${ctx.roas.toFixed(2)}x is performing well — scale budget or duplicate the ad group to capture more volume.`
     });
   }
 
