@@ -1,6 +1,6 @@
 import type { KlaviyoAnalyticsRow } from "@/lib/klaviyo/types";
 import { COPY } from "@/lib/copy";
-import { sumCounts, sumOrderValue, sumUniqueCounts, uniqueMetricCount } from "@/lib/klaviyo/metrics";
+import { filterPlaceOrder, sumCounts, sumOrderValue, sumUniqueCounts, uniqueMetricCount } from "@/lib/klaviyo/metrics";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { formatCurrency, formatNumber } from "@/lib/utils/format";
 import { DollarSign, Layers, MousePointerClick, Users } from "lucide-react";
@@ -26,7 +26,7 @@ export function TopMetricsRow({ rows }: { rows: KlaviyoAnalyticsRow[] }) {
       />
       <MetricCard
         label={m.orderRevenue.label}
-        value={formatCurrency(sumOrderValue(rows))}
+        value={formatCurrency(sumOrderValue(filterPlaceOrder(rows)))}
         icon={DollarSign}
         tooltip={m.orderRevenue.tooltip}
         description={m.orderRevenue.description}

@@ -34,6 +34,12 @@ export function sumOrderValue(rows: KlaviyoAnalyticsRow[]) {
   return rows.reduce((sum, row) => sum + row.orderSumValue, 0);
 }
 
+export const PLACE_ORDER_METRIC = "Placed Order";
+
+export function filterPlaceOrder(rows: KlaviyoAnalyticsRow[]) {
+  return rows.filter((r) => r.metricName === PLACE_ORDER_METRIC);
+}
+
 export function uniqueMetricCount(rows: KlaviyoAnalyticsRow[]) {
   return new Set(rows.map((row) => row.metricName).filter(Boolean)).size;
 }

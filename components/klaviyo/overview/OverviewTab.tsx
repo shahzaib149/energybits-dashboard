@@ -3,7 +3,7 @@
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { KlaviyoAnalyticsRow } from "@/lib/klaviyo/types";
 import { COPY } from "@/lib/copy";
-import { aggregateByDay, buildCountsBreakdown, metricColor, topMetricsByCounts } from "@/lib/klaviyo/metrics";
+import { aggregateByDay, buildCountsBreakdown, filterPlaceOrder, metricColor, topMetricsByCounts } from "@/lib/klaviyo/metrics";
 import { KLAVIYO_CHART_COLORS, klaviyoChartAxisProps } from "@/components/klaviyo/chartTheme";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { formatCurrency, formatCurrencyCompact, formatDate, formatNumber } from "@/lib/utils/format";
@@ -24,6 +24,10 @@ export function OverviewTab({ rows }: { rows: KlaviyoAnalyticsRow[] }) {
   }
 
   const trend = aggregateByDay(rows).map((row) => ({
+    ...row,
+    label: formatDate(row.day)
+  }));
+  const revenueTrend = aggregateByDay(filterPlaceOrder(rows)).map((row) => ({
     ...row,
     label: formatDate(row.day)
   }));
@@ -122,12 +126,12 @@ export function OverviewTab({ rows }: { rows: KlaviyoAnalyticsRow[] }) {
         </div>
       </section>
 
-      {trend.some((row) => row.orderSumValue > 0) ? (
+      {revenueTrend.some((row) => row.orderSumValue > 0) ? (
         <section className="rounded-xl border border-border bg-surface p-6">
           <SectionTitle title={copy.revenueTrend.title} subtitle={copy.revenueTrend.subtitle} />
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trend}>
+              <LineChart data={revenueTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke={KLAVIYO_CHART_COLORS.grid} />
                 <XAxis dataKey="label" {...klaviyoChartAxisProps} />
                 <YAxis tickFormatter={(value) => formatCurrencyCompact(value)} {...klaviyoChartAxisProps} />
