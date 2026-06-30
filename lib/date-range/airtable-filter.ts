@@ -1,8 +1,23 @@
 import type { DateRange } from "@/lib/date-range/types";
 
-/** Inclusive date range filter for Airtable date fields. */
+// Noon anchor avoids DST edge cases (matches parse.ts convention).
+function addOneDay(yyyymmdd: string): string {
+  const d = new Date(`${yyyymmdd}T12:00:00`);
+  d.setDate(d.getDate() + 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Date range filter for Airtable date/datetime fields.
+ * Lower bound is inclusive (>=). Upper bound is exclusive (<) using end_date+1
+ * so that Airtable datetime fields (e.g. "2026-05-31T23:00:00Z") are not
+ * mistakenly cut off when Airtable parses the bare date string as midnight.
+ */
 export function dateFieldInRangeFormula(fieldName: string, range: DateRange): string {
-  return `AND({${fieldName}} >= "${range.from}", {${fieldName}} <= "${range.to}")`;
+  return `AND({${fieldName}} >= "${range.from}", {${fieldName}} < "${addOneDay(range.to)}")`;
 }
 
 export function endDateInRangeFormula(range: DateRange): string {
@@ -27,7 +42,7 @@ export function klaviyoDateInRangeFormula(range: DateRange): string {
 
 /** Campaign rows span Date Start–Date Stop; include any campaign active during the range. */
 export function metaCampaignDateInRangeFormula(range: DateRange): string {
-  return `AND({Date Start} <= "${range.to}", OR({Date Stop} = BLANK(), {Date Stop} >= "${range.from}"))`;
+  return `AND({Date Start} < "${addOneDay(range.to)}", OR({Date Stop} = BLANK(), {Date Stop} >= "${range.from}"))`;
 }
 
 export function metaAdInsightsDateInRangeFormula(range: DateRange): string {
