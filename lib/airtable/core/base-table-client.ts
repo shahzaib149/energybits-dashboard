@@ -132,24 +132,43 @@ export class AirtableBaseTableClient {
     mapper: (record: { id: string; fields: Record<string, unknown> }) => T,
     opts: RecordFetchOpts = {}
   ): Promise<T[]> {
-    const results: T[] = [];
-    let offset: string | undefined;
+    const MAX_ITERATOR_RESTARTS = 3;
+    let restartCount = 0;
 
-    do {
-      const baseUrl = await this.buildUrl(tableName, opts);
-      const url = offset ? `${baseUrl}&offset=${encodeURIComponent(offset)}` : baseUrl;
-      const data = await this.requestWithRetry<{ records: Array<{ id: string; fields: Record<string, unknown> }>; offset?: string }>(
-        url,
-        { cacheTags: opts.cacheTags, noCache: opts.noCache }
-      );
-      results.push(...data.records.map(mapper));
-      offset = data.offset;
-      if (results.length >= this.maxRecords) {
-        return results.slice(0, this.maxRecords);
+    while (true) {
+      const results: T[] = [];
+      let offset: string | undefined;
+
+      try {
+        do {
+          const baseUrl = await this.buildUrl(tableName, opts);
+          const url = offset ? `${baseUrl}&offset=${encodeURIComponent(offset)}` : baseUrl;
+          const data = await this.requestWithRetry<{ records: Array<{ id: string; fields: Record<string, unknown> }>; offset?: string }>(
+            url,
+            { cacheTags: opts.cacheTags, noCache: opts.noCache }
+          );
+          results.push(...data.records.map(mapper));
+          offset = data.offset;
+          if (results.length >= this.maxRecords) {
+            return results.slice(0, this.maxRecords);
+          }
+        } while (offset);
+
+        return results;
+      } catch (err) {
+        if (
+          err instanceof AirtableAPIError &&
+          err.status === 422 &&
+          err.message.includes("LIST_RECORDS_ITERATOR_NOT_AVAILABLE") &&
+          restartCount < MAX_ITERATOR_RESTARTS
+        ) {
+          restartCount++;
+          await sleep(restartCount * 250);
+          continue;
+        }
+        throw err;
       }
-    } while (offset);
-
-    return results;
+    }
   }
 
   async getRecord<T>(
