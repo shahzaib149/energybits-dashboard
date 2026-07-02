@@ -14,7 +14,7 @@ function MainShell({ children }: { children: React.ReactNode }) {
   return (
     <main
       className={cn(
-        "min-h-screen transition-[padding] duration-300",
+        "min-h-screen bg-background transition-[padding] duration-300",
         ready && collapsed ? "lg:pl-[4.75rem]" : "lg:pl-72"
       )}
     >

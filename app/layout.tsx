@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="bg-slate-100 font-sans">
+      <body className="bg-background font-sans">
         <AppChromeWithAuth>{children}</AppChromeWithAuth>
       </body>
     </html>
