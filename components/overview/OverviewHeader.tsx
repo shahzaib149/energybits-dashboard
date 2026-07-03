@@ -13,13 +13,14 @@ export interface OverviewHeaderProps {
   runId: string;
   createdAt: string;
   runs: RunSummary[];
-  exportPayload: Record<string, unknown>;
+  exportPayload?: Record<string, unknown>;
   fetchedAt: string;
   projectUrl?: string;
   /** Route base for run selector (e.g. /aeo-analytics). Defaults to /overview. */
   basePath?: string;
   eyebrow?: string;
   title?: string;
+  reportDownloadPath?: string;
 }
 
 export function OverviewHeader({
@@ -31,7 +32,8 @@ export function OverviewHeader({
   projectUrl,
   basePath = "/overview",
   eyebrow,
-  title
+  title,
+  reportDownloadPath
 }: OverviewHeaderProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -47,6 +49,15 @@ export function OverviewHeader({
   }
 
   function onExport() {
+    if (reportDownloadPath) {
+      window.location.href = reportDownloadPath;
+      return;
+    }
+
+    if (!exportPayload) {
+      return;
+    }
+
     const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");

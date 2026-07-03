@@ -76,6 +76,7 @@ export default async function AEOAnalyticsPage({
           fetchedAt={fetchedAt}
           projectUrl={project.url}
           basePath="/aeo-analytics"
+          reportDownloadPath={`/api/reports/aeo-analytics/pdf?runId=${encodeURIComponent(run.runId)}`}
           eyebrow={COPY.aeoAnalytics.header.eyebrow}
           title={COPY.aeoAnalytics.header.title}
         />
