@@ -78,6 +78,15 @@ export default async function SEOAnalyticsPage({
 
     const lastUpdated = latestEndDate([...keywords, ...pages, ...sources]);
 
+    // Pass the resolved from/to explicitly so the downloaded report matches the
+    // exact range shown on screen, regardless of how it was selected.
+    const reportParams = new URLSearchParams({
+      dateRange: "custom",
+      from: dateRange.from,
+      to: dateRange.to
+    });
+    const reportDownloadPath = `/api/reports/seo-analytics/pdf?${reportParams.toString()}`;
+
     return (
       <div className="overview-theme mx-auto w-full max-w-[1400px] space-y-6 p-3 sm:space-y-8 sm:p-6 lg:p-8">
         <SEOAnalyticsHeader
@@ -86,6 +95,7 @@ export default async function SEOAnalyticsPage({
           dateRange={dateRange}
           dataBounds={dataBounds}
           dateRangePicker={dateRangePicker}
+          reportDownloadPath={reportDownloadPath}
         />
         <TopMetricsRow keywords={keywords} pages={pages} />
 

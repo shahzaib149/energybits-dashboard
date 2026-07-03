@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Download } from "lucide-react";
 import { COPY } from "@/lib/copy";
 import { formatDate } from "@/lib/utils/format";
 import type { DataBounds, DateRange } from "@/lib/date-range/types";
@@ -10,6 +11,7 @@ export interface SEOAnalyticsHeaderProps {
   dateRange: DateRange;
   dataBounds: DataBounds | null;
   dateRangePicker: ReactNode;
+  reportDownloadPath: string;
 }
 
 export function SEOAnalyticsHeader({
@@ -17,7 +19,8 @@ export function SEOAnalyticsHeader({
   totalKeywords,
   dateRange,
   dataBounds,
-  dateRangePicker
+  dateRangePicker,
+  reportDownloadPath
 }: SEOAnalyticsHeaderProps) {
   const copy = COPY.seoAnalytics.header;
   const today = new Date().toISOString().split("T")[0];
@@ -49,6 +52,13 @@ export function SEOAnalyticsHeader({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {dateRangePicker}
+        <a
+          href={reportDownloadPath}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-medium text-background hover:bg-brandHover"
+        >
+          <Download className="h-4 w-4" />
+          {COPY.overview.actions.downloadReport}
+        </a>
         {lastUpdated ? (
           <span className="rounded-md border border-border bg-surfaceElevated px-3 py-1.5 text-xs text-textMuted">
             {copy.lastUpdated} {formatDate(lastUpdated)}
