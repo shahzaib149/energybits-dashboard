@@ -25,7 +25,7 @@ export default async function BlogPreviewPage({ params }: { params: { recordId: 
   const blogStatus = record.fields["Blog Status"] || "Ready";
 
   return (
-    <div className="space-y-6">
+    <div className="overview-theme mx-auto w-full max-w-[1100px] space-y-6 p-3 sm:p-6 lg:p-8">
       <BlogPreviewHeader recordId={record.id} blogTitle={blogTitle} canPublish={canPublish} blogStatus={blogStatus} />
       <BlogPreviewEditor initialRecord={record} canEdit={canEdit} />
     </div>

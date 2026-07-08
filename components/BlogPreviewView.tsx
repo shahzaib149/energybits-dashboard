@@ -10,7 +10,7 @@ function MetaLine({ value }: { value?: string }) {
     return null;
   }
 
-  return <span className="text-sm text-slate-500">{value}</span>;
+  return <span className="text-sm text-textSecondary">{value}</span>;
 }
 
 export function BlogPreviewView({ record }: { record: BlogRecord }) {
@@ -22,7 +22,7 @@ export function BlogPreviewView({ record }: { record: BlogRecord }) {
   const showMeta = Boolean(authorLine || dateLine);
 
   return (
-    <article className="mx-auto w-full max-w-[800px] px-4 py-10 sm:px-6 lg:px-0">
+    <article className="mx-auto w-full max-w-[800px] px-4 py-10 text-textPrimary sm:px-6 lg:px-0">
       <header className="space-y-5">
         {showMeta ? (
           <div className="flex flex-wrap items-center gap-3">
@@ -30,14 +30,14 @@ export function BlogPreviewView({ record }: { record: BlogRecord }) {
             <MetaLine value={dateLine} />
           </div>
         ) : null}
-        <h1 className="text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+        <h1 className="text-4xl font-semibold tracking-tight text-textPrimary sm:text-5xl">
           {record.fields["Blog Title"] || "Untitled Blog"}
         </h1>
         {record.fields["Meta Description"] ? (
-          <p className="max-w-3xl text-lg leading-8 text-slate-600">{asText(record.fields["Meta Description"])}</p>
+          <p className="max-w-3xl text-lg leading-8 text-textSecondary">{asText(record.fields["Meta Description"])}</p>
         ) : null}
         {previewImage ? (
-          <figure className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+          <figure className="overflow-hidden rounded-2xl border border-border bg-surfaceElevated shadow-sm">
             <img
               src={previewImage.url}
               alt={previewImage.alt}
@@ -47,14 +47,14 @@ export function BlogPreviewView({ record }: { record: BlogRecord }) {
         ) : null}
       </header>
 
-      <div className="mt-10 border-t border-slate-200 pt-8">
+      <div className="mt-10 border-t border-border pt-8">
         {source ? (
           <div
-            className="blog-body space-y-6 text-[17px] leading-[1.6] text-slate-800"
+            className="blog-body space-y-6 text-[17px] leading-[1.6] text-textSecondary"
             dangerouslySetInnerHTML={{ __html: renderBlogContent(source) }}
           />
         ) : (
-          <p className="text-sm text-slate-500">No draft content available for this record.</p>
+          <p className="text-sm text-textMuted">No draft content available for this record.</p>
         )}
       </div>
     </article>

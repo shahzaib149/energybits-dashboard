@@ -15,14 +15,14 @@ import { asText } from "@/lib/utils";
 type BlogRecord = AirtableRecord<BlogPipelineFields>;
 
 const TITLE_DISPLAY_CLASS =
-  "block w-full rounded-lg px-0 py-0 text-left text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl disabled:cursor-default";
+  "block w-full rounded-lg px-0 py-0 text-left text-4xl font-semibold tracking-tight text-textPrimary sm:text-5xl disabled:cursor-default";
 const TITLE_INPUT_CLASS =
-  "w-full rounded-lg border border-blue-300 bg-white px-2 py-1 text-4xl font-semibold tracking-tight text-slate-950 outline-none sm:text-5xl";
-const META_DISPLAY_CLASS = "line-clamp-3 text-lg leading-8 text-slate-600";
+  "w-full rounded-lg border border-brand/50 bg-surfaceElevated px-2 py-1 text-4xl font-semibold tracking-tight text-textPrimary outline-none focus:border-brand sm:text-5xl";
+const META_DISPLAY_CLASS = "line-clamp-3 text-lg leading-8 text-textSecondary";
 
 function MetaLine({ value }: { value?: string }) {
   if (!value) return null;
-  return <span className="text-sm text-slate-500">{value}</span>;
+  return <span className="text-sm text-textSecondary">{value}</span>;
 }
 
 function bodyDraftField(record: BlogRecord): "Human Edited Draft" | "AI Draft" {
@@ -132,7 +132,7 @@ export function BlogPreviewEditor({
   }
 
   return (
-    <article className="mx-auto w-full max-w-[800px] px-4 py-10 sm:px-6 lg:px-0">
+    <article className="mx-auto w-full max-w-[800px] px-4 py-10 text-textPrimary sm:px-6 lg:px-0">
       <header className="space-y-5">
         {showMeta ? (
           <div className="flex flex-wrap items-center gap-3">
@@ -142,17 +142,18 @@ export function BlogPreviewEditor({
         ) : null}
 
         {canEdit ? (
-          <h1 className="text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-textPrimary sm:text-5xl">
             <InlineTextEditor
               value={asText(record.fields["Blog Title"]) || "Untitled Blog"}
               status={getFieldStatus("Blog Title")}
               displayClassName={TITLE_DISPLAY_CLASS}
               inputClassName={TITLE_INPUT_CLASS}
+              theme="dark"
               onSave={(value) => savePreviewFields({ "Blog Title": value })}
             />
           </h1>
         ) : (
-          <h1 className="text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-textPrimary sm:text-5xl">
             {record.fields["Blog Title"] || "Untitled Blog"}
           </h1>
         )}
@@ -164,10 +165,11 @@ export function BlogPreviewEditor({
                 value={asText(record.fields["Meta Description"])}
                 status={getFieldStatus("Meta Description")}
                 displayClassName={META_DISPLAY_CLASS}
+                theme="dark"
                 onSave={(value) => savePreviewFields({ "Meta Description": value })}
               />
             ) : (
-              <p className="max-w-3xl text-lg leading-8 text-slate-600">
+              <p className="max-w-3xl text-lg leading-8 text-textSecondary">
                 {asText(record.fields["Meta Description"])}
               </p>
             )}
@@ -175,7 +177,7 @@ export function BlogPreviewEditor({
         ) : null}
 
         {previewImage ? (
-          <figure className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+          <figure className="overflow-hidden rounded-2xl border border-border bg-surfaceElevated shadow-sm">
             <img
               src={previewImage.url}
               alt={previewImage.alt}
@@ -185,13 +187,13 @@ export function BlogPreviewEditor({
         ) : null}
       </header>
 
-      <div className="mt-10 border-t border-slate-200 pt-8">
+      <div className="mt-10 border-t border-border pt-8">
         {editingBody ? (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-700">{copy.editingBody}</p>
-              <SaveIndicator status={getFieldStatus(bodyField)}>
-                <span className="text-xs text-slate-500">
+              <p className="text-sm font-medium text-textSecondary">{copy.editingBody}</p>
+              <SaveIndicator status={getFieldStatus(bodyField)} theme="dark">
+                <span className="text-xs text-textMuted">
                   {getFieldStatus(bodyField) === "saving"
                     ? copy.saving
                     : getFieldStatus(bodyField) === "success"
@@ -206,20 +208,20 @@ export function BlogPreviewEditor({
               autoFocus
               value={bodyDraft}
               onChange={(e) => setBodyDraft(e.target.value)}
-              className="min-h-[420px] w-full rounded-xl border border-slate-300 px-4 py-3 font-mono text-sm leading-relaxed text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              className="min-h-[420px] w-full rounded-xl border border-border bg-surfaceElevated px-4 py-3 font-mono text-sm leading-relaxed text-textPrimary outline-none transition placeholder:text-textMuted focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
             />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setEditingBody(false)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-700"
+                className="rounded-lg border border-border bg-surface px-4 py-2 text-sm text-textSecondary transition hover:border-borderHover hover:bg-surfaceElevated hover:text-textPrimary"
               >
                 {COPY.blogPipeline.cancel}
               </button>
               <button
                 type="button"
                 onClick={() => void saveBody()}
-                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brandHover"
               >
                 {copy.saveBody}
               </button>
@@ -235,8 +237,8 @@ export function BlogPreviewEditor({
             }}
             className={
               canEdit
-                ? "blog-body cursor-text space-y-6 rounded-xl border border-transparent p-2 text-[17px] leading-[1.6] text-slate-800 transition hover:border-blue-200 hover:bg-blue-50/40"
-                : "blog-body space-y-6 text-[17px] leading-[1.6] text-slate-800"
+                ? "blog-body cursor-text space-y-6 rounded-xl border border-transparent p-2 text-[17px] leading-[1.6] text-textSecondary transition hover:border-brand/30 hover:bg-surfaceElevated/60"
+                : "blog-body space-y-6 text-[17px] leading-[1.6] text-textSecondary"
             }
             title={canEdit ? copy.clickBody : undefined}
             dangerouslySetInnerHTML={{ __html: renderedHtml }}
@@ -245,12 +247,12 @@ export function BlogPreviewEditor({
           <button
             type="button"
             onClick={startBodyEdit}
-            className="w-full rounded-xl border border-dashed border-slate-300 px-4 py-12 text-sm text-slate-500 hover:border-blue-300 hover:bg-blue-50/40"
+            className="w-full rounded-xl border border-dashed border-border px-4 py-12 text-sm text-textMuted transition hover:border-brand/40 hover:bg-surfaceElevated/60 hover:text-textSecondary"
           >
             {copy.addBody}
           </button>
         ) : (
-          <p className="text-sm text-slate-500">{copy.noBody}</p>
+          <p className="text-sm text-textMuted">{copy.noBody}</p>
         )}
       </div>
     </article>
