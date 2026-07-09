@@ -25,12 +25,12 @@ export async function GET(request: NextRequest) {
     const { range: dateRange } = parseDateRangeWithBounds(params, dataBounds);
 
     const [keywords, pages, sources, critical, lowCTR, page2, channels] = await Promise.all([
-      airtable.getSEOKeywords({ limit: 500 }),
+      airtable.getSEOKeywords({ limit: 500, dateRange }),
       airtable.getTopPagesBySessions(50, dateRange),
       airtable.getTrafficSources(50, dateRange),
-      airtable.getCriticalKeywords(),
-      airtable.getLowCTRKeywords(),
-      airtable.getPage2Opportunities(),
+      airtable.getCriticalKeywords(dateRange),
+      airtable.getLowCTRKeywords(dateRange),
+      airtable.getPage2Opportunities(dateRange),
       airtable.getChannelBreakdown(dateRange)
     ]);
 

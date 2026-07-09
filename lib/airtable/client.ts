@@ -46,15 +46,21 @@ export class AirtableClient {
   async getSEOKeywords(opts?: {
     limit?: number;
     filter?: string;
+    dateRange?: DateRange;
   }): Promise<SEOTrackingRow[]> {
-    // Fetch all rows — no date filter (SEO Tracking is a cumulative snapshot table)
+    const dateFilter = opts?.dateRange ? endDateInRangeFormula(opts.dateRange) : undefined;
+    const filter = combineFormulas(opts?.filter, dateFilter);
     const allRows = await this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
-      filterByFormula: opts?.filter,
+      filterByFormula: filter,
       sort: [{ field: "Clicks", direction: "desc" }],
-      cacheTags: ["airtable-seo-keywords"]
+      cacheTags: opts?.dateRange ? this.cacheTagsForRange(opts.dateRange) : ["airtable-seo-keywords"]
     });
 
     if (allRows.length === 0) return [];
+
+    if (opts?.dateRange) {
+      return opts.limit ? allRows.slice(0, opts.limit) : allRows;
+    }
 
     // Find the most recent End Date present in the data (in-memory, no extra API call)
     const latestEndDate = allRows.reduce<string>((max, r) => {
@@ -129,12 +135,12 @@ export class AirtableClient {
     return this.client.fetchAllPages(SEO.tables.aeoPromptOpportunities, mapAEOPrompt, { noCache: true });
   }
 
-  async getCriticalKeywords(): Promise<SEOTrackingRow[]> {
-    return this.getSEOKeywords({ filter: '{SEO Priority} = "Critical"' });
+  async getCriticalKeywords(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
+    return this.getSEOKeywords({ filter: '{SEO Priority} = "Critical"', dateRange });
   }
 
-  async getCriticalKeywordsPending(): Promise<SEOTrackingRow[]> {
-    const rows = await this.getCriticalKeywords();
+  async getCriticalKeywordsPending(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
+    const rows = await this.getCriticalKeywords(dateRange);
     return rows.filter((r) => r.actionStatus !== "Done" && r.actionStatus !== "Ignored");
   }
 
@@ -145,16 +151,16 @@ export class AirtableClient {
       .sort((a, b) => b.sessions - a.sessions);
   }
 
-  async getLowCTRKeywords(): Promise<SEOTrackingRow[]> {
-    return this.getSEOKeywords({ filter: '{SEO Opportunity Type} = "High Impressions Low CTR"' });
+  async getLowCTRKeywords(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
+    return this.getSEOKeywords({ filter: '{SEO Opportunity Type} = "High Impressions Low CTR"', dateRange });
   }
 
-  async getPage2Opportunities(): Promise<SEOTrackingRow[]> {
-    return this.getSEOKeywords({ filter: '{SEO Opportunity Type} = "Page 2 Ranking Opportunity"' });
+  async getPage2Opportunities(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
+    return this.getSEOKeywords({ filter: '{SEO Opportunity Type} = "Page 2 Ranking Opportunity"', dateRange });
   }
 
-  async getZeroClickKeywords(): Promise<SEOTrackingRow[]> {
-    return this.getSEOKeywords({ filter: '{SEO Opportunity Type} = "Zero Click Opportunity"' });
+  async getZeroClickKeywords(dateRange?: DateRange): Promise<SEOTrackingRow[]> {
+    return this.getSEOKeywords({ filter: '{SEO Opportunity Type} = "Zero Click Opportunity"', dateRange });
   }
 
   async getTopPagesBySessions(limit = 50, dateRange?: DateRange): Promise<GA4PageRow[]> {
