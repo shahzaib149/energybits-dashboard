@@ -7,7 +7,7 @@ import type { RunSummary } from "@/lib/cairrot/types";
 import { refreshCairrotData } from "@/app/overview/actions";
 import { COPY } from "@/lib/copy";
 import { formatDate } from "@/lib/utils/format";
-import { formatRunStatusLabel, formatUpdatedAt } from "@/lib/utils/overview-display";
+import { formatRunOptionLabel, formatUpdatedAt } from "@/lib/utils/overview-display";
 
 export interface OverviewHeaderProps {
   runId: string;
@@ -124,7 +124,7 @@ export function OverviewHeader({
         >
           {runs.map((run) => (
             <option key={run.runId} value={run.runId}>
-              {formatDate(run.startedAt)} — {formatRunStatusLabel(run.status)}
+              {formatRunOptionLabel(run)}
             </option>
           ))}
         </select>

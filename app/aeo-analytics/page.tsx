@@ -13,7 +13,12 @@ import { ProjectBanner } from "@/components/overview/ProjectBanner";
 import { SectionHeading } from "@/components/overview/SectionHeading";
 import { KeywordsTopicsPanel } from "@/components/overview/KeywordsTopicsPanel";
 import { AllPromptsTable } from "@/components/overview/AllPromptsTable";
-import { CompetitorsSection, DomainsSection, InsightsSection } from "@/app/aeo-analytics/_sections";
+import {
+  CompetitorsSection,
+  DomainsSection,
+  InsightsSection,
+  PerformanceTrendSection
+} from "@/app/aeo-analytics/_sections";
 import { OverviewPageSkeleton, SectionSkeleton } from "@/components/overview/OverviewSkeletons";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -82,6 +87,13 @@ export default async function AEOAnalyticsPage({
         />
 
         <ProjectBanner project={project} projectIdEnv={env.CAIRROT_PROJECT_ID} />
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-textPrimary">Performance Trends</h2>
+          <Suspense fallback={<SectionSkeleton rows={6} />}>
+            <PerformanceTrendSection />
+          </Suspense>
+        </div>
 
         <SectionHeading
           accent="aeo"

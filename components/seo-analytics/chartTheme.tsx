@@ -16,6 +16,17 @@ export const CHART_COLORS = {
   surface: "#16161A"
 };
 
+export const TREND_COLORS = {
+  clicks: CHART_COLORS.brand,
+  impressions: CHART_COLORS.blue,
+  position: CHART_COLORS.orange,
+  sessions: CHART_COLORS.cyan,
+  engagement: CHART_COLORS.purple,
+  deltaPositive: "#34D399",
+  deltaNegative: "#F87171",
+  deltaFlat: CHART_COLORS.gray
+};
+
 export const chartTooltipStyle = {
   background: CHART_COLORS.surface,
   border: `1px solid ${CHART_COLORS.grid}`,

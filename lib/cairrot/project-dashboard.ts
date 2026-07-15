@@ -65,7 +65,11 @@ export function normalizeProject(raw: ProjectRaw): ProjectDashboard {
         name: capitalizeBucket(name),
         score,
         issues: score < 70 ? 1 : 0
-      }))
+      })),
+      firstScore: raw.firstReadinessScore ?? null,
+      firstScoredAt: raw.firstReadinessAt ?? null,
+      bestScore: raw.bestReadinessScore ?? null,
+      worstScore: raw.worstReadinessScore ?? null
     }
   };
 }

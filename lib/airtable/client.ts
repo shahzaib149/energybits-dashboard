@@ -242,6 +242,45 @@ export class AirtableClient {
       .sort((a, b) => b.sessions - a.sessions);
   }
 
+  /**
+   * Fetch ALL keyword rows in the date range without deduplicating to the latest period.
+   * Used for building time-series trend data across multiple sync periods.
+   */
+  async getAllKeywordsInRange(dateRange: DateRange): Promise<SEOTrackingRow[]> {
+    const dateFilter = endDateInRangeFormula(dateRange);
+    return this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
+      filterByFormula: dateFilter,
+      sort: [{ field: "End Date", direction: "asc" }],
+      cacheTags: [`airtable-seo-trend-${dateRange.from}-${dateRange.to}`]
+    });
+  }
+
+  /**
+   * Fetch ALL GA4 page rows in the date range without deduplicating by pagePath.
+   * Used for building time-series trend data across multiple sync periods.
+   */
+  async getAllPagesInRange(dateRange: DateRange): Promise<GA4PageRow[]> {
+    const dateFilter = endDateInRangeFormula(dateRange);
+    return this.client.fetchAllPages(SEO.tables.ga4PagePerformance, mapGA4PageRecord, {
+      filterByFormula: dateFilter,
+      sort: [{ field: "End Date", direction: "asc" }],
+      cacheTags: [`airtable-seo-trend-pages-${dateRange.from}-${dateRange.to}`]
+    });
+  }
+
+  /**
+   * Fetch ALL GA4 source rows in the date range without deduplicating by source+medium.
+   * Used for building time-series trend data across multiple sync periods.
+   */
+  async getAllSourcesInRange(dateRange: DateRange): Promise<GA4SourceRow[]> {
+    const dateFilter = endDateInRangeFormula(dateRange);
+    return this.client.fetchAllPages(SEO.tables.ga4TrafficSources, mapGA4SourceRecord, {
+      filterByFormula: dateFilter,
+      sort: [{ field: "End Date", direction: "asc" }],
+      cacheTags: [`airtable-seo-trend-sources-${dateRange.from}-${dateRange.to}`]
+    });
+  }
+
   async getDataBounds(): Promise<DataBounds | null> {
     try {
       const [ga4Oldest, ga4Newest, seoNewest] = await Promise.all([
@@ -330,7 +369,13 @@ export const airtable = {
     getAirtableClient().getTrafficSources(...args),
   getChannelBreakdown: (...args: Parameters<AirtableClient["getChannelBreakdown"]>) =>
     getAirtableClient().getChannelBreakdown(...args),
-  getDataBounds: () => getAirtableClient().getDataBounds()
+  getDataBounds: () => getAirtableClient().getDataBounds(),
+  getAllKeywordsInRange: (...args: Parameters<AirtableClient["getAllKeywordsInRange"]>) =>
+    getAirtableClient().getAllKeywordsInRange(...args),
+  getAllPagesInRange: (...args: Parameters<AirtableClient["getAllPagesInRange"]>) =>
+    getAirtableClient().getAllPagesInRange(...args),
+  getAllSourcesInRange: (...args: Parameters<AirtableClient["getAllSourcesInRange"]>) =>
+    getAirtableClient().getAllSourcesInRange(...args)
 };
 
 /** Spec alias */

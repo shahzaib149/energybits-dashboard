@@ -82,6 +82,10 @@ export interface AIReadinessScore {
   overallScore: number;
   categories: { name: string; score: number; issues: number }[];
   lastUpdated: string;
+  firstScore: number | null;
+  firstScoredAt: string | null;
+  bestScore: number | null;
+  worstScore: number | null;
 }
 
 export interface CitationsResponse {
@@ -199,6 +203,10 @@ export interface ProjectRaw {
   lastReadinessScore?: number;
   lastReadinessAt?: string;
   lastReadinessBuckets?: Record<string, number>;
+  firstReadinessScore?: number;
+  firstReadinessAt?: string;
+  bestReadinessScore?: number;
+  worstReadinessScore?: number;
   lastRunAt?: string;
   lastRunStatus?: string;
   nextRunAt?: string;

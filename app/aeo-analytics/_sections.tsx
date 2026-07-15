@@ -4,6 +4,7 @@ import { buildRecommendedActions } from "@/lib/cairrot/insights";
 import { CompetitorVisibility } from "@/components/overview/CompetitorVisibility";
 import { InsightsPanel } from "@/components/overview/InsightsPanel";
 import { NeutralDomainsTable } from "@/components/overview/NeutralDomainsTable";
+import { PerformanceTrendChart } from "@/components/overview/PerformanceTrendChart";
 import { ErrorState } from "@/components/ui/ErrorState";
 
 export async function DomainsSection({ runId }: { runId: string }) {
@@ -23,6 +24,16 @@ export async function CompetitorsSection({ runId }: { runId: string }) {
   } catch (error) {
     const status = error instanceof CairrotAPIError ? error.status : undefined;
     return <ErrorState message="Failed to load competitor visibility." statusCode={status} />;
+  }
+}
+
+export async function PerformanceTrendSection() {
+  try {
+    const runs = await getCairrotClient().getPerformanceTrend(8);
+    return <PerformanceTrendChart runs={runs} />;
+  } catch (error) {
+    const status = error instanceof CairrotAPIError ? error.status : undefined;
+    return <ErrorState message="Failed to load performance trend." statusCode={status} />;
   }
 }
 

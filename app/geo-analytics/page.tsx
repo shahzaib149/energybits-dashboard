@@ -3,6 +3,7 @@ import { getCairrotClient } from "@/lib/cairrot/client";
 import { getCairrotEnv, isCairrotConfigured } from "@/lib/env";
 import { COPY } from "@/lib/copy";
 import { GeoReadinessPanel } from "@/components/overview/GeoReadinessPanel";
+import { GeoScoreTrendChart } from "@/components/overview/GeoScoreTrendChart";
 import { KeywordsTopicsPanel } from "@/components/overview/KeywordsTopicsPanel";
 import { ProjectBanner } from "@/components/overview/ProjectBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -48,6 +49,11 @@ export default async function GEOAnalyticsPage() {
         </header>
 
         <ProjectBanner project={project} projectIdEnv={env.CAIRROT_PROJECT_ID} />
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-textPrimary">Performance Trends</h2>
+          <GeoScoreTrendChart geo={project.geo} />
+        </div>
 
         <GeoReadinessPanel geo={project.geo} />
 

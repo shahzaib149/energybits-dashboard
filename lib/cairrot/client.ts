@@ -269,6 +269,13 @@ export class CairrotClient {
     };
   }
 
+  /** Full totals + LLM breakdown for the last N runs, oldest first — used for trend charts. */
+  async getPerformanceTrend(limit = 8): Promise<RunOverview[]> {
+    const runs = await this.listRuns(limit);
+    const overviews = await Promise.all(runs.map((r) => this.getRun(r.runId)));
+    return overviews.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
   async getLatestRun(): Promise<RunOverview> {
     const runs = await this.listRuns(1);
     if (runs.length === 0) {

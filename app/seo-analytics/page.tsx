@@ -9,6 +9,7 @@ import { latestEndDate } from "@/lib/seo-analytics/metrics";
 import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { SEOAnalyticsHeader } from "@/components/seo-analytics/SEOAnalyticsHeader";
 import { TopMetricsRow } from "@/components/seo-analytics/TopMetricsRow";
+import { TrendsSection } from "@/components/seo-analytics/trends/TrendsSection";
 import { TabsNav, type SEOTabId } from "@/components/seo-analytics/TabsNav";
 import { SearchTab } from "@/components/seo-analytics/search/SearchTab";
 import { PagesTab } from "@/components/seo-analytics/pages/PagesTab";
@@ -17,6 +18,12 @@ import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AirtableAPIError } from "@/lib/airtable/errors";
+import {
+  aggregateKeywordsByPeriod,
+  aggregatePagesByPeriod,
+  aggregateChannelsByPeriod,
+  getUniqueChannels
+} from "@/lib/seo-analytics/trends";
 
 export const metadata: Metadata = {
   title: COPY.seoAnalytics.meta.title,
@@ -75,6 +82,22 @@ export default async function SEOAnalyticsPage({
         airtable.getChannelBreakdown(dateRange)
       ]);
 
+    // Fetch trend data using full data bounds for a broader time view
+    const trendRange = dataBounds
+      ? { preset: "custom" as const, from: dataBounds.minDate, to: dataBounds.maxDate }
+      : dateRange;
+
+    const [trendKeywords, trendPages, trendSources] = await Promise.all([
+      airtable.getAllKeywordsInRange(trendRange),
+      airtable.getAllPagesInRange(trendRange),
+      airtable.getAllSourcesInRange(trendRange)
+    ]);
+
+    const seoTrend = aggregateKeywordsByPeriod(trendKeywords);
+    const ga4Trend = aggregatePagesByPeriod(trendPages);
+    const channelTrend = aggregateChannelsByPeriod(trendSources);
+    const trendChannels = getUniqueChannels(trendSources);
+
     const lastUpdated = latestEndDate([...keywords, ...pages, ...sources]);
 
     // Pass the resolved from/to explicitly so the downloaded report matches the
@@ -96,7 +119,13 @@ export default async function SEOAnalyticsPage({
           dateRangePicker={dateRangePicker}
           reportDownloadPath={reportDownloadPath}
         />
-        <TopMetricsRow keywords={keywords} pages={pages} />
+        <TopMetricsRow keywords={keywords} pages={pages} seoTrend={seoTrend} ga4Trend={ga4Trend} />
+
+        <TrendsSection
+          seoTrend={seoTrend}
+          channelTrend={channelTrend}
+          channels={trendChannels}
+        />
 
         <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
           <TabsNav activeTab={activeTab} />

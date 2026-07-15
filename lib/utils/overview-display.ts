@@ -1,5 +1,5 @@
-import type { LLMBreakdown, PromptResult, RunOverview } from "@/lib/cairrot/types";
-import { formatPercent } from "@/lib/utils/format";
+import type { LLMBreakdown, PromptResult, RunOverview, RunSummary } from "@/lib/cairrot/types";
+import { formatDate, formatPercent } from "@/lib/utils/format";
 
 export function formatAnalysisLabel(runId: string): string {
   const suffix = runId.replace(/-/g, "").slice(-4).toUpperCase();
@@ -12,6 +12,20 @@ export function formatRunStatusLabel(status: string): string {
   if (normalized === "failed") return "failed";
   if (normalized === "running" || normalized === "in_progress") return "in progress";
   return status;
+}
+
+/**
+ * Run selector option label, e.g. "AI Scan · Jul 14, 2026 · 24 prompts".
+ * Status is appended only when the run isn't a normal completed one.
+ */
+export function formatRunOptionLabel(run: RunSummary): string {
+  const parts = [`AI Scan · ${formatDate(run.startedAt)}`];
+  if (run.promptCount > 0) {
+    parts.push(`${run.promptCount} ${run.promptCount === 1 ? "prompt" : "prompts"}`);
+  }
+  const label = parts.join(" · ");
+  const normalized = run.status.toLowerCase();
+  return normalized === "success" ? label : `${label} (${formatRunStatusLabel(run.status)})`;
 }
 
 export function formatWorkspaceId(id: string): string {
