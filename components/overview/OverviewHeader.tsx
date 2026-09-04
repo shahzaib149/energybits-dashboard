@@ -6,7 +6,7 @@ import { useTransition } from "react";
 import type { RunSummary } from "@/lib/cairrot/types";
 import { refreshCairrotData } from "@/app/overview/actions";
 import { COPY } from "@/lib/copy";
-import { formatDate } from "@/lib/utils/format";
+import { formatAEOScanDate } from "@/lib/utils/format";
 import { formatRunOptionLabel, formatUpdatedAt } from "@/lib/utils/overview-display";
 
 export interface OverviewHeaderProps {
@@ -86,7 +86,7 @@ export function OverviewHeader({
               <span className="mx-1.5 text-border">·</span>
             </>
           ) : null}
-          {copy.analysisFrom} {formatDate(createdAt)}
+          {copy.analysisFrom} {formatAEOScanDate(createdAt)}
         </p>
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-textMuted">
           <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surfaceElevated px-2 py-0.5 font-medium text-textSecondary">

@@ -1,5 +1,5 @@
 import type { LLMBreakdown, PromptResult, RunOverview, RunSummary } from "@/lib/cairrot/types";
-import { formatDate, formatPercent } from "@/lib/utils/format";
+import { formatAEOScanDate, formatPercent } from "@/lib/utils/format";
 
 export function formatAnalysisLabel(runId: string): string {
   const suffix = runId.replace(/-/g, "").slice(-4).toUpperCase();
@@ -19,7 +19,7 @@ export function formatRunStatusLabel(status: string): string {
  * Status is appended only when the run isn't a normal completed one.
  */
 export function formatRunOptionLabel(run: RunSummary): string {
-  const parts = [`AI Scan · ${formatDate(run.startedAt)}`];
+  const parts = [`AI Scan · ${formatAEOScanDate(run.startedAt)}`];
   if (run.promptCount > 0) {
     parts.push(`${run.promptCount} ${run.promptCount === 1 ? "prompt" : "prompts"}`);
   }

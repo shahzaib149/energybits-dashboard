@@ -1,7 +1,7 @@
 import type { CairrotDashboard, ProjectPrompt } from "@/lib/cairrot/project-dashboard";
 import type { PromptResult } from "@/lib/cairrot/types";
 import { computeAtAGlance } from "@/lib/utils/overview-display";
-import { formatDate, formatDateTime, formatNumber, formatPercent } from "@/lib/utils/format";
+import { formatAEOScanDate, formatDateTime, formatNumber, formatPercent } from "@/lib/utils/format";
 import { PdfReport, MUTED } from "@/lib/reports/pdf-builder";
 
 export function buildAEOAnalyticsPdf(dashboard: CairrotDashboard): Buffer {
@@ -22,7 +22,7 @@ export function buildAEOAnalyticsPdf(dashboard: CairrotDashboard): Buffer {
   );
   report.metaGrid([
     { label: "Project", value: project.url || project.host || "ENERGYbits" },
-    { label: "Analysis date", value: formatDate(run.createdAt) },
+    { label: "Analysis date", value: formatAEOScanDate(run.createdAt) },
     { label: "Run ID", value: run.runId },
     { label: "Providers", value: latestRun?.providers.join(", ") || run.llms.map((llm) => llm.name).join(", ") },
     { label: "Generated", value: formatDateTime(new Date().toISOString()) },

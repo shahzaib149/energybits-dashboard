@@ -32,11 +32,36 @@ function asEnum<T extends string>(value: unknown, fallback: T): T {
 
 export function mapSEOTrackingRecord(record: AirtableRecordRaw): SEOTrackingRow {
   const f = record.fields;
+  let query = asString(f.Query);
+  let pageUrl = asString(f["Page URL"]);
+  const seoKey = asString(f["SEO Key"]);
+  const action = asString(f["Recommended Action"]);
+
+  if (!query && seoKey) {
+    const parts = seoKey.split("|");
+    if (parts[0]) query = parts[0].trim();
+  }
+  if (!query && action) {
+    const match = action.match(/"([^"]+)"/);
+    if (match) query = match[1];
+  }
+  if (!query) {
+    query = asString(f["Suggested Target Product"]) || "energy bits";
+  }
+
+  if (!pageUrl && seoKey && seoKey.includes("|http")) {
+    const parts = seoKey.split("|");
+    if (parts[1] && parts[1].startsWith("http")) pageUrl = parts[1].trim();
+  }
+  if (!pageUrl) {
+    pageUrl = "https://energybits.com/";
+  }
+
   return {
     id: record.id,
-    seoKey: asString(f["SEO Key"]),
-    query: asString(f.Query),
-    pageUrl: asString(f["Page URL"]),
+    seoKey: seoKey || query,
+    query,
+    pageUrl,
     pageType: asEnum<PageType>(f["Page Type"], "Other"),
     clicks: asNumber(f.Clicks),
     impressions: asNumber(f.Impressions),
@@ -48,7 +73,7 @@ export function mapSEOTrackingRecord(record: AirtableRecordRaw): SEOTrackingRow 
     brandType: asEnum<BrandType>(f["Brand Type"], "Non-Branded"),
     seoOpportunityType: asEnum<SEOOpportunityType>(f["SEO Opportunity Type"], "Low Priority"),
     seoPriority: asEnum<SEOPriority>(f["SEO Priority"], "Monitor"),
-    recommendedAction: asString(f["Recommended Action"]),
+    recommendedAction: action,
     suggestedContentType: asString(f["Suggested Content Type"]),
     suggestedTargetProduct: asString(f["Suggested Target Product"]),
     status: asEnum<SEOStatus>(f.Status, "New"),

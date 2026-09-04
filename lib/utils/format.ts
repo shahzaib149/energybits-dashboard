@@ -18,6 +18,16 @@ const dateShortFormatter = new Intl.DateTimeFormat("en-US", {
   year: "numeric"
 });
 
+/** Fixed business timezone for AEO scan dates, independent of the viewer's location. */
+export const AEO_REPORTING_TIME_ZONE = "America/New_York";
+
+const aeoScanDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: AEO_REPORTING_TIME_ZONE
+});
+
 export function formatNumber(value: number): string {
   if (!Number.isFinite(value)) {
     return "0";
@@ -47,6 +57,14 @@ export function formatDate(iso: string): string {
     return iso;
   }
   return dateShortFormatter.format(date);
+}
+
+export function formatAEOScanDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return aeoScanDateFormatter.format(date);
 }
 
 export function formatCompact(value: number): string {
