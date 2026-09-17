@@ -10,10 +10,8 @@ import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { SEOAnalyticsHeader } from "@/components/seo-analytics/SEOAnalyticsHeader";
 import { TopMetricsRow } from "@/components/seo-analytics/TopMetricsRow";
 import { TrendsSection } from "@/components/seo-analytics/trends/TrendsSection";
-import { TabsNav, type SEOTabId } from "@/components/seo-analytics/TabsNav";
-import { SearchTab } from "@/components/seo-analytics/search/SearchTab";
-import { PagesTab } from "@/components/seo-analytics/pages/PagesTab";
-import { SourcesTab } from "@/components/seo-analytics/sources/SourcesTab";
+import { SEOTabsContainer } from "@/components/seo-analytics/SEOTabsContainer";
+import type { SEOTabId } from "@/components/seo-analytics/TabsNav";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -29,6 +27,8 @@ export const metadata: Metadata = {
   title: COPY.seoAnalytics.meta.title,
   description: COPY.seoAnalytics.meta.description
 };
+
+export const revalidate = 300;
 
 function parseTab(tab?: string): SEOTabId {
   if (tab === "pages" || tab === "sources") return tab;
@@ -127,31 +127,20 @@ export default async function SEOAnalyticsPage({
           channels={trendChannels}
         />
 
-        <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
-          <TabsNav activeTab={activeTab} />
-        </Suspense>
-
-        {activeTab === "search" ? (
-          <SearchTab
-            keywords={keywords}
-            critical={critical}
-            lowCTR={lowCTR}
-            page2={page2}
-            canEditGSCStatus={canEditGSCStatus}
-            dateRange={dateRange}
-          />
-        ) : null}
-        {activeTab === "pages" ? (
-          <PagesTab
-            pages={pages}
-            highEngagement={highEngagement}
-            poorPerformance={poorPerformance}
-            dateRange={dateRange}
-          />
-        ) : null}
-        {activeTab === "sources" ? (
-          <SourcesTab sources={sources} channels={channels} dateRange={dateRange} />
-        ) : null}
+        <SEOTabsContainer
+          initialTab={activeTab}
+          keywords={keywords}
+          critical={critical}
+          lowCTR={lowCTR}
+          page2={page2}
+          canEditGSCStatus={canEditGSCStatus}
+          pages={pages}
+          highEngagement={highEngagement}
+          poorPerformance={poorPerformance}
+          sources={sources}
+          channels={channels}
+          dateRange={dateRange}
+        />
       </div>
     );
   } catch (err) {

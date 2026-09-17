@@ -7,11 +7,8 @@ import { latestPulledAt } from "@/lib/google-ads/metrics";
 import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { GoogleAdsHeader } from "@/components/google-ads/GoogleAdsHeader";
 import { TopMetricsRow } from "@/components/google-ads/TopMetricsRow";
-import { TabsNav, type GoogleAdsTabId } from "@/components/google-ads/TabsNav";
-import { CampaignsTab } from "@/components/google-ads/campaigns/CampaignsTab";
-import { AdGroupsTab } from "@/components/google-ads/ad-groups/AdGroupsTab";
-import { CreativesTab } from "@/components/google-ads/creatives/CreativesTab";
-import { KeywordsTab } from "@/components/google-ads/keywords/KeywordsTab";
+import { GoogleAdsTabsContainer } from "@/components/google-ads/GoogleAdsTabsContainer";
+import type { GoogleAdsTabId } from "@/components/google-ads/TabsNav";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -21,6 +18,8 @@ export const metadata: Metadata = {
   title: COPY.googleAds.meta.title,
   description: COPY.googleAds.meta.description
 };
+
+export const revalidate = 300;
 
 function parseTab(tab?: string): GoogleAdsTabId {
   if (tab === "ad-groups" || tab === "creatives" || tab === "keywords") return tab;
@@ -88,14 +87,14 @@ export default async function GoogleAdsAnalyticsPage({
         />
         <TopMetricsRow campaigns={campaigns} />
 
-        <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
-          <TabsNav activeTab={activeTab} />
-        </Suspense>
-
-        {activeTab === "campaigns" ? <CampaignsTab campaigns={campaigns} dateRange={dateRange} /> : null}
-        {activeTab === "ad-groups" ? <AdGroupsTab adGroups={adGroups} dateRange={dateRange} /> : null}
-        {activeTab === "creatives" ? <CreativesTab creatives={creatives} campaigns={campaigns} dateRange={dateRange} /> : null}
-        {activeTab === "keywords" ? <KeywordsTab keywords={keywords} dateRange={dateRange} /> : null}
+        <GoogleAdsTabsContainer
+          initialTab={activeTab}
+          campaigns={campaigns}
+          adGroups={adGroups}
+          creatives={creatives}
+          keywords={keywords}
+          dateRange={dateRange}
+        />
       </div>
     );
   } catch (err) {

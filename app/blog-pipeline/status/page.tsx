@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: COPY.blogPipeline.meta.description
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function BlogPipelineStatusPage() {
   const user = await getServerUser();

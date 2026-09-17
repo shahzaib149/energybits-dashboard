@@ -7,11 +7,8 @@ import { deduplicateCampaignRows, latestDay, uniqueAdCount, uniqueCampaignCount 
 import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { MetaHeader } from "@/components/meta-analytics/MetaHeader";
 import { TopMetricsRow } from "@/components/meta-analytics/TopMetricsRow";
-import { TabsNav, type MetaAnalyticsTabId } from "@/components/meta-analytics/TabsNav";
-import { OverviewTab } from "@/components/meta-analytics/overview/OverviewTab";
-import { CampaignsTab } from "@/components/meta-analytics/campaigns/CampaignsTab";
-import { AdsTab } from "@/components/meta-analytics/ads/AdsTab";
-import { DetailTab } from "@/components/meta-analytics/detail/DetailTab";
+import { MetaAnalyticsTabsContainer } from "@/components/meta-analytics/MetaAnalyticsTabsContainer";
+import type { MetaAnalyticsTabId } from "@/components/meta-analytics/TabsNav";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -21,6 +18,8 @@ export const metadata: Metadata = {
   title: COPY.metaAnalytics.meta.title,
   description: COPY.metaAnalytics.meta.description
 };
+
+export const revalidate = 300;
 
 function parseTab(tab?: string): MetaAnalyticsTabId {
   if (tab === "campaigns" || tab === "ads" || tab === "detail") return tab;
@@ -79,14 +78,12 @@ export default async function MetaAnalyticsPage({
         />
         <TopMetricsRow campaigns={campaigns} />
 
-        <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
-          <TabsNav activeTab={activeTab} />
-        </Suspense>
-
-        {activeTab === "overview" ? <OverviewTab campaigns={campaigns} ads={ads} /> : null}
-        {activeTab === "campaigns" ? <CampaignsTab campaigns={campaigns} dateRange={dateRange} /> : null}
-        {activeTab === "ads" ? <AdsTab ads={ads} dateRange={dateRange} /> : null}
-        {activeTab === "detail" ? <DetailTab ads={ads} dateRange={dateRange} /> : null}
+        <MetaAnalyticsTabsContainer
+          initialTab={activeTab}
+          campaigns={campaigns}
+          ads={ads}
+          dateRange={dateRange}
+        />
       </div>
     );
   } catch (err) {

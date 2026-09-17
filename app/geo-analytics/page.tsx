@@ -10,13 +10,13 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { ApiNoticeBanner } from "@/components/overview/ApiNoticeBanner";
 
 export const metadata: Metadata = {
   title: COPY.geoAnalytics.meta.title,
   description: COPY.geoAnalytics.meta.description
 };
 
-export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export default async function GEOAnalyticsPage() {
@@ -47,6 +47,13 @@ export default async function GEOAnalyticsPage() {
           <h1 className="mt-1 text-2xl font-semibold text-textPrimary lg:text-3xl">{COPY.geoAnalytics.header.title}</h1>
           <p className="mt-1 max-w-2xl text-sm text-textSecondary">{COPY.geoAnalytics.header.subtitle}</p>
         </header>
+
+        {dashboard.isMock ? (
+          <ApiNoticeBanner
+            title="Local Development Preview Mode"
+            message={`Cairrot API returned: ${dashboard.mockReason || "Invalid or expired API key"}. Displaying sample ENERGYbits data so you can test and preview GEO Analytics in development. Update CAIRROT_API_KEY in .env.local with a valid key for live data.`}
+          />
+        ) : null}
 
         <ProjectBanner project={project} projectIdEnv={env.CAIRROT_PROJECT_ID} />
 

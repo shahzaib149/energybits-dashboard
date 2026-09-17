@@ -6,6 +6,8 @@ export interface CairrotDashboard {
   runs: RunSummary[];
   allPrompts: ProjectPrompt[];
   fetchedAt: string;
+  isMock?: boolean;
+  mockReason?: string;
 }
 
 export interface ProjectDashboard {

@@ -7,10 +7,8 @@ import { latestDay, uniqueCampaignCount } from "@/lib/vibe-ads/metrics";
 import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { VibeAdsHeader } from "@/components/vibe-ads/VibeAdsHeader";
 import { TopMetricsRow } from "@/components/vibe-ads/TopMetricsRow";
-import { TabsNav, type VibeAdsTabId } from "@/components/vibe-ads/TabsNav";
-import { OverviewTab } from "@/components/vibe-ads/overview/OverviewTab";
-import { CampaignsTab, ChannelsTab, CreativesTab } from "@/components/vibe-ads/AggregatedTabs";
-import { DetailTab } from "@/components/vibe-ads/detail/DetailTab";
+import { VibeAdsTabsContainer } from "@/components/vibe-ads/VibeAdsTabsContainer";
+import type { VibeAdsTabId } from "@/components/vibe-ads/TabsNav";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -20,6 +18,8 @@ export const metadata: Metadata = {
   title: COPY.vibeAds.meta.title,
   description: COPY.vibeAds.meta.description
 };
+
+export const revalidate = 300;
 
 function parseTab(tab?: string): VibeAdsTabId {
   if (tab === "campaigns" || tab === "channels" || tab === "creatives" || tab === "detail") return tab;
@@ -64,15 +64,11 @@ export default async function VibeAdsAnalyticsPage({
         />
         <TopMetricsRow rows={rows} />
 
-        <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
-          <TabsNav activeTab={activeTab} />
-        </Suspense>
-
-        {activeTab === "overview" ? <OverviewTab rows={rows} /> : null}
-        {activeTab === "campaigns" ? <CampaignsTab rows={rows} dateRange={dateRange} /> : null}
-        {activeTab === "channels" ? <ChannelsTab rows={rows} dateRange={dateRange} /> : null}
-        {activeTab === "creatives" ? <CreativesTab rows={rows} dateRange={dateRange} /> : null}
-        {activeTab === "detail" ? <DetailTab rows={rows} dateRange={dateRange} /> : null}
+        <VibeAdsTabsContainer
+          initialTab={activeTab}
+          rows={rows}
+          dateRange={dateRange}
+        />
       </div>
     );
   } catch (err) {

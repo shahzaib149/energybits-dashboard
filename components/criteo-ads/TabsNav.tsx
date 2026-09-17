@@ -14,7 +14,13 @@ const tabs = [
 
 export type CriteoAdsTabId = (typeof tabs)[number]["id"];
 
-export function TabsNav({ activeTab }: { activeTab: CriteoAdsTabId }) {
+export function TabsNav({
+  activeTab,
+  onTabChange
+}: {
+  activeTab: CriteoAdsTabId;
+  onTabChange?: (tab: CriteoAdsTabId) => void;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -30,6 +36,12 @@ export function TabsNav({ activeTab }: { activeTab: CriteoAdsTabId }) {
           <Link
             key={tab.id}
             href={href}
+            onClick={(e) => {
+              if (onTabChange) {
+                e.preventDefault();
+                onTabChange(tab.id);
+              }
+            }}
             className={cn(
               "rounded-t-lg px-4 py-2.5 text-sm font-medium transition",
               active

@@ -2,6 +2,7 @@ import { tableRecordsPath } from "@/lib/airtable/endpoints";
 import { AirtableAPIError } from "@/lib/airtable/errors";
 import { getAirtableApiKey } from "@/lib/airtable/config/env";
 import { resolveBaseId } from "@/lib/airtable/meta/resolve-base";
+import { getOrSetCache } from "@/lib/cache/memory-cache";
 
 const DEFAULT_REVALIDATE_SECONDS = 300;
 const DEFAULT_MAX_RECORDS = 2000;
@@ -128,6 +129,20 @@ export class AirtableBaseTableClient {
   }
 
   async fetchAllPages<T>(
+    tableName: string,
+    mapper: (record: { id: string; fields: Record<string, unknown> }) => T,
+    opts: RecordFetchOpts = {}
+  ): Promise<T[]> {
+    if (opts.noCache) {
+      return this.doFetchAllPages(tableName, mapper, opts);
+    }
+    const cacheKey = `airtable:${this.baseName}:${tableName}:${opts.filterByFormula || ""}:${JSON.stringify(opts.sort || [])}:${opts.maxRecords || ""}`;
+    return getOrSetCache(cacheKey, this.revalidateSeconds, () => {
+      return this.doFetchAllPages(tableName, mapper, opts);
+    });
+  }
+
+  private async doFetchAllPages<T>(
     tableName: string,
     mapper: (record: { id: string; fields: Record<string, unknown> }) => T,
     opts: RecordFetchOpts = {}

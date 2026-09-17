@@ -7,10 +7,8 @@ import { latestDay, uniqueMetricCount } from "@/lib/klaviyo/metrics";
 import { parseDateRangeWithBounds } from "@/lib/date-range/parse";
 import { KlaviyoHeader } from "@/components/klaviyo/KlaviyoHeader";
 import { TopMetricsRow } from "@/components/klaviyo/TopMetricsRow";
-import { TabsNav, type KlaviyoTabId } from "@/components/klaviyo/TabsNav";
-import { OverviewTab } from "@/components/klaviyo/overview/OverviewTab";
-import { MetricsTab } from "@/components/klaviyo/metrics/MetricsTab";
-import { RecordsTab } from "@/components/klaviyo/records/RecordsTab";
+import { KlaviyoTabsContainer } from "@/components/klaviyo/KlaviyoTabsContainer";
+import type { KlaviyoTabId } from "@/components/klaviyo/TabsNav";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -20,6 +18,8 @@ export const metadata: Metadata = {
   title: COPY.klaviyo.meta.title,
   description: COPY.klaviyo.meta.description
 };
+
+export const revalidate = 300;
 
 function parseTab(tab?: string): KlaviyoTabId {
   if (tab === "metrics" || tab === "records") return tab;
@@ -64,13 +64,11 @@ export default async function KlaviyoAnalyticsPage({
         />
         <TopMetricsRow rows={rows} />
 
-        <Suspense fallback={<div className="h-10 animate-pulse rounded-lg bg-surfaceElevated" />}>
-          <TabsNav activeTab={activeTab} />
-        </Suspense>
-
-        {activeTab === "overview" ? <OverviewTab rows={rows} /> : null}
-        {activeTab === "metrics" ? <MetricsTab rows={rows} dateRange={dateRange} /> : null}
-        {activeTab === "records" ? <RecordsTab rows={rows} dateRange={dateRange} /> : null}
+        <KlaviyoTabsContainer
+          initialTab={activeTab}
+          rows={rows}
+          dateRange={dateRange}
+        />
       </div>
     );
   } catch (err) {

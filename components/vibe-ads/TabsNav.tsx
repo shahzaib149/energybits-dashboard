@@ -15,7 +15,7 @@ const tabs = [
 
 export type VibeAdsTabId = (typeof tabs)[number]["id"];
 
-export function TabsNav({ activeTab }: { activeTab: VibeAdsTabId }) {
+export function TabsNav({ activeTab, onTabChange }: { activeTab: VibeAdsTabId; onTabChange?: (tab: VibeAdsTabId) => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   return (
@@ -25,7 +25,17 @@ export function TabsNav({ activeTab }: { activeTab: VibeAdsTabId }) {
         params.set("tab", tab.id);
         const href = `${pathname}?${params.toString()}`;
         return (
-          <Link key={tab.id} href={href} className={cn("rounded-t-lg px-4 py-2.5 text-sm font-medium transition", activeTab === tab.id ? "border border-b-0 border-violet-500/40 bg-surface text-violet-200" : "text-textSecondary hover:bg-surfaceElevated hover:text-textPrimary")}>
+          <Link
+            key={tab.id}
+            href={href}
+            onClick={(e) => {
+              if (onTabChange) {
+                e.preventDefault();
+                onTabChange(tab.id);
+              }
+            }}
+            className={cn("rounded-t-lg px-4 py-2.5 text-sm font-medium transition", activeTab === tab.id ? "border border-b-0 border-violet-500/40 bg-surface text-violet-200" : "text-textSecondary hover:bg-surfaceElevated hover:text-textPrimary")}
+          >
             {tab.label}
           </Link>
         );

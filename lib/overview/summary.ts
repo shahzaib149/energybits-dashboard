@@ -61,69 +61,60 @@ export async function fetchOverviewHubData(
   const channels: AnalyticsChannelSummary[] = [];
   let projectUrl: string | null = null;
 
-  if (isCairrotConfigured()) {
-    try {
-      const client = getCairrotClient();
-      const dashboard = await client.getFullDashboard(runId);
-      const { project, run } = dashboard;
-      projectUrl = project.url;
+  const [cairrotResult, seoResult, googleAdsResult] = await Promise.allSettled([
+    isCairrotConfigured()
+      ? getCairrotClient().getFullDashboard(runId)
+      : null,
+    isSEOAnalyticsConfigured()
+      ? Promise.all([
+          airtable.getSEOKeywords({ limit: 500 }),
+          airtable.getCriticalKeywords()
+        ])
+      : null,
+    isGoogleAdsConfigured()
+      ? googleAds.getCampaigns(undefined, dateRange)
+      : null
+  ]);
 
-      const aeoStats = computeAtAGlance(run);
-      const aeoNarrative = `ENERGYbits is mentioned in ${formatBrandMentionPct(aeoStats.brandMentionPct)} of AI answers about your category. Brand appears in ${aeoStats.promptsWithBrand} of ${aeoStats.totalPrompts} tracked questions.`;
+  const cairrotData = cairrotResult.status === 'fulfilled' ? cairrotResult.value : null;
+  if (cairrotData) {
+    const { project, run } = cairrotData;
+    projectUrl = project.url;
 
-      channels.push({
-        id: "aeo",
-        configured: true,
-        headline: "AI Search Visibility",
-        narrative: aeoNarrative,
-        stats: [
-          { label: "Brand mention rate", value: formatBrandMentionPct(aeoStats.brandMentionPct) },
-          { label: "Questions with brand", value: `${aeoStats.promptsWithBrand}/${aeoStats.totalPrompts}` },
-          { label: "Total citations", value: run.totals.citations.toLocaleString() }
-        ],
-        href: "/aeo-analytics",
-        accent: "brand"
-      });
+    const aeoStats = computeAtAGlance(run);
+    const aeoNarrative = `ENERGYbits is mentioned in ${formatBrandMentionPct(aeoStats.brandMentionPct)} of AI answers about your category. Brand appears in ${aeoStats.promptsWithBrand} of ${aeoStats.totalPrompts} tracked questions.`;
 
-      const weakest = weakestGeoCategory(project.geo.categories);
-      channels.push({
-        id: "geo",
-        configured: true,
-        headline: "Site AI Readiness",
-        narrative: `Your site scores ${project.geo.overallScore}/100 for AI readability.${weakest ? ` Focus area: ${weakest}.` : ""}`,
-        stats: [
-          { label: "Overall score", value: `${project.geo.overallScore}/100` },
-          { label: "Weakest area", value: weakest ?? "—" },
-          {
-            label: "Categories tracked",
-            value: String(project.geo.categories.length)
-          }
-        ],
-        href: "/geo-analytics",
-        accent: "sky"
-      });
-    } catch {
-      channels.push(
+    channels.push({
+      id: "aeo",
+      configured: true,
+      headline: "AI Search Visibility",
+      narrative: aeoNarrative,
+      stats: [
+        { label: "Brand mention rate", value: formatBrandMentionPct(aeoStats.brandMentionPct) },
+        { label: "Questions with brand", value: `${aeoStats.promptsWithBrand}/${aeoStats.totalPrompts}` },
+        { label: "Total citations", value: run.totals.citations.toLocaleString() }
+      ],
+      href: "/aeo-analytics",
+      accent: "brand"
+    });
+
+    const weakest = weakestGeoCategory(project.geo.categories);
+    channels.push({
+      id: "geo",
+      configured: true,
+      headline: "Site AI Readiness",
+      narrative: `Your site scores ${project.geo.overallScore}/100 for AI readability.${weakest ? ` Focus area: ${weakest}.` : ""}`,
+      stats: [
+        { label: "Overall score", value: `${project.geo.overallScore}/100` },
+        { label: "Weakest area", value: weakest ?? "—" },
         {
-          id: "aeo",
-          configured: false,
-          headline: "AI Search Visibility",
-          narrative: "Connect AI visibility analytics to see how ChatGPT, Gemini, and Perplexity mention ENERGYbits.",
-          stats: [],
-          href: "/aeo-analytics",
-          accent: "brand"
-        },
-        {
-          id: "geo",
-          configured: false,
-          headline: "Site AI Readiness",
-          narrative: "Connect analytics to see how well your site is set up for AI engines to read and cite.",
-          stats: [],
-          href: "/geo-analytics",
-          accent: "sky"
+          label: "Categories tracked",
+          value: String(project.geo.categories.length)
         }
-      );
-    }
+      ],
+      href: "/geo-analytics",
+      accent: "sky"
+    });
   } else {
     channels.push(
       {
@@ -147,37 +138,33 @@ export async function fetchOverviewHubData(
     );
   }
 
-  if (isSEOAnalyticsConfigured()) {
-    try {
-      const [keywords, critical] = await Promise.all([
-        airtable.getSEOKeywords({ limit: 500 }),
-        airtable.getCriticalKeywords()
-      ]);
-      const clicks = sumClicks(keywords);
-      channels.push({
-        id: "seo",
-        configured: true,
-        headline: "Organic Search (SEO)",
-        narrative: `Your site earned ${clicks.toLocaleString()} clicks from Google Search across ${keywords.length} tracked keyword rows.${critical.length > 0 ? ` ${critical.length} critical opportunities need attention.` : ""}`,
-        stats: [
-          { label: "Total clicks", value: clicks.toLocaleString() },
-          { label: "Average CTR", value: `${averageCTR(keywords).toFixed(1)}%` },
-          { label: "Avg. position", value: weightedAveragePosition(keywords).toFixed(1) }
-        ],
-        href: "/seo-analytics",
-        accent: "green"
-      });
-    } catch {
-      channels.push({
-        id: "seo",
-        configured: false,
-        headline: "Organic Search (SEO)",
-        narrative: "SEO data is configured but could not be loaded right now.",
-        stats: [],
-        href: "/seo-analytics",
-        accent: "green"
-      });
-    }
+  const seoData = seoResult.status === 'fulfilled' ? seoResult.value : null;
+  if (seoData && isSEOAnalyticsConfigured()) {
+    const [keywords, critical] = seoData;
+    const clicks = sumClicks(keywords);
+    channels.push({
+      id: "seo",
+      configured: true,
+      headline: "Organic Search (SEO)",
+      narrative: `Your site earned ${clicks.toLocaleString()} clicks from Google Search across ${keywords.length} tracked keyword rows.${critical.length > 0 ? ` ${critical.length} critical opportunities need attention.` : ""}`,
+      stats: [
+        { label: "Total clicks", value: clicks.toLocaleString() },
+        { label: "Average CTR", value: `${averageCTR(keywords).toFixed(1)}%` },
+        { label: "Avg. position", value: weightedAveragePosition(keywords).toFixed(1) }
+      ],
+      href: "/seo-analytics",
+      accent: "green"
+    });
+  } else if (isSEOAnalyticsConfigured()) {
+    channels.push({
+      id: "seo",
+      configured: false,
+      headline: "Organic Search (SEO)",
+      narrative: "SEO data is configured but could not be loaded right now.",
+      stats: [],
+      href: "/seo-analytics",
+      accent: "green"
+    });
   } else {
     channels.push({
       id: "seo",
@@ -190,35 +177,34 @@ export async function fetchOverviewHubData(
     });
   }
 
-  if (isGoogleAdsConfigured()) {
-    try {
-      const campaigns = await googleAds.getCampaigns(undefined, dateRange);
-      const spend = sumCost(campaigns);
-      const roas = overallRoas(campaigns);
-      channels.push({
-        id: "googleAds",
-        configured: true,
-        headline: "Google Ads",
-        narrative: `You've spent ${spend.toLocaleString("en-US", { style: "currency", currency: "USD" })} across ${campaigns.length} campaigns with ${formatRoasDisplay(roas)} overall return.`,
-        stats: [
-          { label: "Total spend", value: spend.toLocaleString("en-US", { style: "currency", currency: "USD" }) },
-          { label: "Overall ROAS", value: formatRoasDisplay(roas) },
-          { label: "Conversions", value: sumConversions(campaigns).toLocaleString() }
-        ],
-        href: "/google-ads-analytics",
-        accent: "amber"
-      });
-    } catch {
-      channels.push({
-        id: "googleAds",
-        configured: false,
-        headline: "Google Ads",
-        narrative: "Google Ads data is configured but could not be loaded. Check Airtable permissions.",
-        stats: [],
-        href: "/google-ads-analytics",
-        accent: "amber"
-      });
-    }
+  const googleAdsData = googleAdsResult.status === 'fulfilled' ? googleAdsResult.value : null;
+  if (googleAdsData && isGoogleAdsConfigured()) {
+    const campaigns = googleAdsData;
+    const spend = sumCost(campaigns);
+    const roas = overallRoas(campaigns);
+    channels.push({
+      id: "googleAds",
+      configured: true,
+      headline: "Google Ads",
+      narrative: `You've spent ${spend.toLocaleString("en-US", { style: "currency", currency: "USD" })} across ${campaigns.length} campaigns with ${formatRoasDisplay(roas)} overall return.`,
+      stats: [
+        { label: "Total spend", value: spend.toLocaleString("en-US", { style: "currency", currency: "USD" }) },
+        { label: "Overall ROAS", value: formatRoasDisplay(roas) },
+        { label: "Conversions", value: sumConversions(campaigns).toLocaleString() }
+      ],
+      href: "/google-ads-analytics",
+      accent: "amber"
+    });
+  } else if (isGoogleAdsConfigured()) {
+    channels.push({
+      id: "googleAds",
+      configured: false,
+      headline: "Google Ads",
+      narrative: "Google Ads data is configured but could not be loaded. Check Airtable permissions.",
+      stats: [],
+      href: "/google-ads-analytics",
+      accent: "amber"
+    });
   } else {
     channels.push({
       id: "googleAds",

@@ -13,7 +13,7 @@ const tabs = [
 
 export type KlaviyoTabId = (typeof tabs)[number]["id"];
 
-export function TabsNav({ activeTab }: { activeTab: KlaviyoTabId }) {
+export function TabsNav({ activeTab, onTabChange }: { activeTab: KlaviyoTabId; onTabChange?: (tab: KlaviyoTabId) => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   return (
@@ -26,6 +26,12 @@ export function TabsNav({ activeTab }: { activeTab: KlaviyoTabId }) {
           <Link
             key={tab.id}
             href={href}
+            onClick={(e) => {
+              if (onTabChange) {
+                e.preventDefault();
+                onTabChange(tab.id);
+              }
+            }}
             className={cn(
               "rounded-t-lg px-4 py-2.5 text-sm font-medium transition",
               activeTab === tab.id

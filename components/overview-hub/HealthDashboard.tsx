@@ -2,15 +2,12 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import {
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
-  Tooltip
-} from "recharts";
+import dynamic from "next/dynamic";
+
+const RadarChartSection = dynamic(
+  () => import("./RadarChartSection"),
+  { ssr: false, loading: () => <div className="h-full animate-pulse rounded-lg bg-surfaceElevated" /> }
+);
 import { ArrowRight } from "lucide-react";
 import type { ChannelHealthScore } from "@/lib/overview/health-scores";
 import { statusLabel } from "@/lib/overview/health-scores";
@@ -18,7 +15,6 @@ import type { AnalyticsChannelSummary } from "@/lib/overview/summary";
 import { cn } from "@/lib/utils";
 
 const GRID = "#2A2A30";
-const SURFACE = "#16161A";
 
 const statusColors = {
   excellent: "text-brand border-brand/40 bg-brand/10",
@@ -113,36 +109,7 @@ export function HealthDashboard({
           <p className="text-xs font-medium uppercase tracking-wide text-textMuted">Channel balance</p>
           <p className="mt-1 text-sm text-textSecondary">How each area compares on a 0–100 scale</p>
           <div className="mt-4 h-[280px] sm:h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="72%">
-                <PolarGrid stroke={GRID} />
-                <PolarAngleAxis dataKey="channel" tick={{ fill: "#A1A1AA", fontSize: 12 }} />
-                <PolarRadiusAxis domain={[0, 100]} tick={{ fill: "#71717A", fontSize: 10 }} axisLine={false} />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (!active || !payload?.[0]) return null;
-                    const row = payload[0].payload as (typeof radarData)[number];
-                    return (
-                      <div
-                        style={{ background: SURFACE, border: `1px solid ${GRID}`, borderRadius: 8, padding: 12 }}
-                        className="text-xs"
-                      >
-                        <p className="font-medium text-white">{row.channel}</p>
-                        <p className="text-textSecondary">Health score: {row.score}/100</p>
-                      </div>
-                    );
-                  }}
-                />
-                <Radar
-                  name="Score"
-                  dataKey="score"
-                  stroke="#1FBA5A"
-                  fill="#1FBA5A"
-                  fillOpacity={0.25}
-                  strokeWidth={2}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
+            <RadarChartSection data={radarData} />
           </div>
         </div>
 

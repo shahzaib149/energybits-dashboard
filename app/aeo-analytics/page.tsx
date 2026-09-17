@@ -22,13 +22,13 @@ import {
 import { OverviewPageSkeleton, SectionSkeleton } from "@/components/overview/OverviewSkeletons";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ApiNoticeBanner } from "@/components/overview/ApiNoticeBanner";
 
 export const metadata: Metadata = {
   title: COPY.aeoAnalytics.meta.title,
   description: COPY.aeoAnalytics.meta.description
 };
 
-export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export default async function AEOAnalyticsPage({
@@ -85,6 +85,13 @@ export default async function AEOAnalyticsPage({
           eyebrow={COPY.aeoAnalytics.header.eyebrow}
           title={COPY.aeoAnalytics.header.title}
         />
+
+        {dashboard.isMock ? (
+          <ApiNoticeBanner
+            title="Local Development Preview Mode"
+            message={`Cairrot API returned: ${dashboard.mockReason || "Invalid or expired API key"}. Displaying sample ENERGYbits data so you can test and preview AEO Analytics in development. Update CAIRROT_API_KEY in .env.local with a valid key for live data.`}
+          />
+        ) : null}
 
         <ProjectBanner project={project} projectIdEnv={env.CAIRROT_PROJECT_ID} />
 

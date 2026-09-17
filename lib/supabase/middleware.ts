@@ -55,21 +55,34 @@ export async function updateSession(request: NextRequest) {
   let profileRole: ReturnType<typeof normalizeRole> | null = null;
 
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+    const cachedRole = request.cookies.get("x-user-role")?.value;
 
-    if (!profile && pathname !== "/account-not-provisioned" && !isPublic) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/account-not-provisioned";
-      url.search = "";
-      return NextResponse.redirect(url);
-    }
+    if (cachedRole) {
+      profileRole = normalizeRole(cachedRole);
+    } else {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
 
-    if (profile) {
-      profileRole = normalizeRole(profile.role);
+      if (!profile && pathname !== "/account-not-provisioned" && !isPublic) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/account-not-provisioned";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
+
+      if (profile) {
+        profileRole = normalizeRole(profile.role);
+        supabaseResponse.cookies.set("x-user-role", profile.role, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          maxAge: 3600,
+          path: "/"
+        });
+      }
     }
 
     if (isAdminPath(pathname) && (!profileRole || !permissions.canViewAuditLog(profileRole))) {

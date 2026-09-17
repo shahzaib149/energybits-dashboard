@@ -7,7 +7,6 @@ import { AirtableRecord, KeywordsFields } from "@/lib/types";
 import { parseDateRange } from "@/lib/date-range/parse";
 import { formatNumber } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
 export const revalidate = AIRTABLE_REVALIDATE_SECONDS;
 
 async function KeywordsContent({ dateFrom }: { dateFrom: string }) {

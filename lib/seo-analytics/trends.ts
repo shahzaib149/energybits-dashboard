@@ -1,4 +1,5 @@
 import type { GA4PageRow, GA4SourceRow, SEOTrackingRow } from "@/lib/airtable/types";
+import { deduplicateSEORows } from "@/lib/seo-analytics/deduplicate";
 
 export interface SEOTrendPoint {
   period: string;
@@ -23,9 +24,10 @@ export interface ChannelTrendPoint {
 }
 
 export function aggregateKeywordsByPeriod(keywords: SEOTrackingRow[]): SEOTrendPoint[] {
+  const sanitized = deduplicateSEORows(keywords);
   const map = new Map<string, SEOTrackingRow[]>();
 
-  for (const row of keywords) {
+  for (const row of sanitized) {
     const period = row.endDate || "Unknown";
     const existing = map.get(period) ?? [];
     existing.push(row);

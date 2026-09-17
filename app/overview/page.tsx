@@ -4,6 +4,7 @@ import { COPY } from "@/lib/copy";
 import { getServerUser } from "@/lib/auth/getServerUser";
 import { fetchOverviewHubData } from "@/lib/overview/summary";
 import { parseDateRange } from "@/lib/date-range/parse";
+import type { DateRange } from "@/lib/date-range/types";
 import {
   buildCombinedIntelligenceReport,
   gapSummaryFromReport
@@ -26,8 +27,26 @@ export const metadata: Metadata = {
   description: COPY.hub.meta.description
 };
 
-export const dynamic = "force-dynamic";
 export const revalidate = 300;
+
+/* ---------- Streamed section: heavy intelligence report loads after shell ---------- */
+async function IntelligenceGapsSection({ dateRange }: { dateRange: DateRange }) {
+  const intelligenceReport = await buildCombinedIntelligenceReport({ dateRange }).catch(() => null);
+  const gapSummary = intelligenceReport
+    ? gapSummaryFromReport(intelligenceReport)
+    : { criticalGaps: 0, highGaps: 0, mediumGaps: 0, totalGaps: 0 };
+  const intelligenceConfigured = isSEOAnalyticsConfigured() || isCairrotConfigured();
+  const webhookConfigured = isMakeIntelligenceWebhookConfigured();
+
+  return (
+    <IntelligenceGapsCard
+      gaps={gapSummary}
+      dateRange={dateRange}
+      configured={intelligenceConfigured}
+      webhookConfigured={webhookConfigured}
+    />
+  );
+}
 
 export default async function OverviewPage({
   searchParams
@@ -35,16 +54,11 @@ export default async function OverviewPage({
   searchParams: Record<string, string | undefined>;
 }) {
   const { range: dateRange, invalid: showInvalidToast } = parseDateRange(searchParams);
-  const [hub, user, intelligenceReport] = await Promise.all([
+  const [hub, user] = await Promise.all([
     fetchOverviewHubData(undefined, dateRange),
     getServerUser(),
-    buildCombinedIntelligenceReport({ dateRange }).catch(() => null)
   ]);
 
-  const gapSummary = intelligenceReport
-    ? gapSummaryFromReport(intelligenceReport)
-    : { criticalGaps: 0, highGaps: 0, mediumGaps: 0, totalGaps: 0 };
-  const intelligenceConfigured = isSEOAnalyticsConfigured() || isCairrotConfigured();
   const webhookConfigured = isMakeIntelligenceWebhookConfigured();
 
   return (
@@ -56,12 +70,9 @@ export default async function OverviewPage({
           </Suspense>
         }
       />
-      <IntelligenceGapsCard
-        gaps={gapSummary}
-        dateRange={dateRange}
-        configured={intelligenceConfigured}
-        webhookConfigured={webhookConfigured}
-      />
+      <Suspense fallback={<div className="h-44 w-full animate-pulse rounded-2xl border border-border bg-surface" />}>
+        <IntelligenceGapsSection dateRange={dateRange} />
+      </Suspense>
       <WeeklyAutoTriggerCard
         userRole={user?.role ?? null}
         webhookConfigured={webhookConfigured}

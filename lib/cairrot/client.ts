@@ -6,6 +6,7 @@
  */
 
 import { getCairrotEnv } from "@/lib/env";
+import { getOrSetCache } from "@/lib/cache/memory-cache";
 import {
   aggregateCompetitors,
   aggregateNeutralDomains,
@@ -20,6 +21,16 @@ import {
 } from "@/lib/cairrot/endpoints";
 import { CairrotAPIError, CairrotNotFoundError } from "@/lib/cairrot/errors";
 import { buildInsights, buildRecommendedActions } from "@/lib/cairrot/insights";
+import {
+  createMockCompetitorVisibility,
+  createMockDashboard,
+  createMockInsights,
+  createMockNeutralDomains,
+  createMockPerformanceTrend,
+  createMockProjectDashboard,
+  createMockProjectPrompts,
+  createMockRunOverview
+} from "@/lib/cairrot/mock-data";
 import {
   normalizeProject,
   normalizePrompts,
@@ -118,10 +129,19 @@ export class CairrotClient {
         const body = (await response.json()) as T | { ok: false; error: { message: string; code: string } };
 
         if (!response.ok) {
-          const message =
-            typeof body === "object" && body !== null && "error" in body
-              ? (body as { error: { message: string } }).error.message
-              : response.statusText;
+          let message = response.statusText;
+          if (typeof body === "object" && body !== null) {
+            if ("message" in body && typeof (body as { message?: unknown }).message === "string") {
+              message = (body as { message: string }).message;
+            } else if ("error" in body) {
+              const err = (body as { error: unknown }).error;
+              if (typeof err === "string") {
+                message = err;
+              } else if (typeof err === "object" && err !== null && "message" in err) {
+                message = (err as { message: string }).message || message;
+              }
+            }
+          }
           throw new CairrotAPIError(message || "Cairrot API error", response.status, path);
         }
 
@@ -235,68 +255,145 @@ export class CairrotClient {
     return { citations, mentions, prompts, project };
   }
 
+  private isFallbackAllowed(): boolean {
+    return (
+      process.env.CAIRROT_USE_MOCK === "true" ||
+      process.env.NODE_ENV === "development" ||
+      process.env.NEXT_PUBLIC_ALLOW_MOCK_FALLBACK === "true"
+    );
+  }
+
   async getProjectDashboard(): Promise<ProjectDashboard> {
-    const raw = await this.fetchProject();
-    return normalizeProject(raw);
+    if (process.env.CAIRROT_USE_MOCK === "true") {
+      return createMockProjectDashboard();
+    }
+    try {
+      const raw = await this.fetchProject();
+      return normalizeProject(raw);
+    } catch (error) {
+      if (this.isFallbackAllowed()) {
+        console.warn(`[CairrotClient] getProjectDashboard failed (${error instanceof Error ? error.message : "error"}). Using mock project.`);
+        return createMockProjectDashboard();
+      }
+      throw error;
+    }
   }
 
   async getAllPrompts(): Promise<ProjectPrompt[]> {
-    const raw = await this.fetchPrompts();
-    return normalizePrompts(raw);
+    if (process.env.CAIRROT_USE_MOCK === "true") {
+      return createMockProjectPrompts();
+    }
+    try {
+      const raw = await this.fetchPrompts();
+      return normalizePrompts(raw);
+    } catch (error) {
+      if (this.isFallbackAllowed()) {
+        console.warn(`[CairrotClient] getAllPrompts failed (${error instanceof Error ? error.message : "error"}). Using mock prompts.`);
+        return createMockProjectPrompts();
+      }
+      throw error;
+    }
   }
 
   /** Full Cairrot snapshot: project profile, GEO readiness, all prompts, and latest run AEO visibility. */
   async getFullDashboard(runId?: string): Promise<CairrotDashboard> {
-    const [project, runs, allPrompts] = await Promise.all([
-      this.getProjectDashboard(),
-      this.listRuns(10),
-      this.getAllPrompts()
-    ]);
-
-    if (runs.length === 0) {
-      throw new CairrotNotFoundError("No prompt runs found for this project", projectRunsSearch(this.projectId));
+    if (process.env.CAIRROT_USE_MOCK === "true") {
+      return createMockDashboard(runId);
     }
+    const cacheKey = `cairrot:full-dashboard:${this.projectId}:${runId || "latest"}`;
+    return getOrSetCache(cacheKey, REVALIDATE_SECONDS, async () => {
+      try {
+        const [project, runs, allPrompts] = await Promise.all([
+          this.getProjectDashboard(),
+          this.listRuns(10),
+          this.getAllPrompts()
+        ]);
 
-    const targetRunId = runId && runs.some((r) => r.runId === runId) ? runId : runs[0].runId;
-    const run = await this.getRun(targetRunId);
+        if (runs.length === 0) {
+          throw new CairrotNotFoundError("No prompt runs found for this project", projectRunsSearch(this.projectId));
+        }
 
-    return {
-      project,
-      run,
-      runs,
-      allPrompts,
-      fetchedAt: new Date().toISOString()
-    };
+        const targetRunId = runId && runs.some((r) => r.runId === runId) ? runId : runs[0].runId;
+        const run = await this.getRun(targetRunId);
+
+        return {
+          project,
+          run,
+          runs,
+          allPrompts,
+          fetchedAt: new Date().toISOString()
+        };
+      } catch (error) {
+        if (this.isFallbackAllowed()) {
+          const message = error instanceof Error ? error.message : "API request failed";
+          console.warn(`[CairrotClient] Live API getFullDashboard failed (${message}). Falling back to mock preview data for local development.`);
+          return createMockDashboard(runId, message);
+        }
+        throw error;
+      }
+    });
   }
 
   /** Full totals + LLM breakdown for the last N runs, oldest first — used for trend charts. */
   async getPerformanceTrend(limit = 8): Promise<RunOverview[]> {
-    const runs = await this.listRuns(limit);
-    const overviews = await Promise.all(runs.map((r) => this.getRun(r.runId)));
-    return overviews.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    if (process.env.CAIRROT_USE_MOCK === "true") {
+      return createMockPerformanceTrend(limit);
+    }
+    try {
+      const runs = await this.listRuns(limit);
+      const overviews = await Promise.all(runs.map((r) => this.getRun(r.runId)));
+      return overviews.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    } catch (error) {
+      if (this.isFallbackAllowed()) {
+        console.warn(`[CairrotClient] getPerformanceTrend failed. Using mock trend.`);
+        return createMockPerformanceTrend(limit);
+      }
+      throw error;
+    }
   }
 
   async getLatestRun(): Promise<RunOverview> {
-    const runs = await this.listRuns(1);
-    if (runs.length === 0) {
-      throw new CairrotNotFoundError("No prompt runs found for this project", projectRunsSearch(this.projectId));
+    if (process.env.CAIRROT_USE_MOCK === "true") {
+      return createMockRunOverview();
     }
-    return this.getRun(runs[0].runId);
+    try {
+      const runs = await this.listRuns(1);
+      if (runs.length === 0) {
+        throw new CairrotNotFoundError("No prompt runs found for this project", projectRunsSearch(this.projectId));
+      }
+      return this.getRun(runs[0].runId);
+    } catch (error) {
+      if (this.isFallbackAllowed()) {
+        return createMockRunOverview();
+      }
+      throw error;
+    }
   }
 
   async getRun(runId: string): Promise<RunOverview> {
-    const run = await this.resolveRun(runId);
-    const { citations, mentions, prompts, project } = await this.fetchRunData(run);
+    if (process.env.CAIRROT_USE_MOCK === "true") {
+      return createMockRunOverview(runId);
+    }
+    try {
+      const run = await this.resolveRun(runId);
+      const { citations, mentions, prompts, project } = await this.fetchRunData(run);
 
-    return buildRunOverview({
-      runId: run.run_id,
-      projectId: this.projectId,
-      startedAt: run.started_at,
-      citations,
-      mentions,
-      prompts,
-      brandVariants: project.keywords ?? []
-    });
+      return buildRunOverview({
+        runId: run.run_id,
+        projectId: this.projectId,
+        startedAt: run.started_at,
+        citations,
+        mentions,
+        prompts,
+        brandVariants: project.keywords ?? []
+      });
+    } catch (error) {
+      if (this.isFallbackAllowed()) {
+        console.warn(`[CairrotClient] getRun failed. Using mock run.`);
+        return createMockRunOverview(runId);
+      }
+      throw error;
+    }
   }
 
   async getCitations(runId: string): Promise<CitationsResponse> {
@@ -327,14 +424,36 @@ export class CairrotClient {
   }
 
   async getNeutralDomains(runId: string, limit = 10): Promise<NeutralDomain[]> {
-    const { items } = await this.getCitations(runId);
-    return aggregateNeutralDomains(items, limit);
+    if (process.env.CAIRROT_USE_MOCK === "true") {
+      return createMockNeutralDomains(limit);
+    }
+    try {
+      const { items } = await this.getCitations(runId);
+      return aggregateNeutralDomains(items, limit);
+    } catch (error) {
+      if (this.isFallbackAllowed()) {
+        console.warn(`[CairrotClient] getNeutralDomains failed. Using mock domains.`);
+        return createMockNeutralDomains(limit);
+      }
+      throw error;
+    }
   }
 
   async getCompetitorVisibility(runId: string): Promise<CompetitorData[]> {
-    const run = await this.resolveRun(runId);
-    const { citations, mentions } = await this.fetchRunData(run);
-    return aggregateCompetitors(citations, mentions);
+    if (process.env.CAIRROT_USE_MOCK === "true") {
+      return createMockCompetitorVisibility();
+    }
+    try {
+      const run = await this.resolveRun(runId);
+      const { citations, mentions } = await this.fetchRunData(run);
+      return aggregateCompetitors(citations, mentions);
+    } catch (error) {
+      if (this.isFallbackAllowed()) {
+        console.warn(`[CairrotClient] getCompetitorVisibility failed. Using mock competitor visibility.`);
+        return createMockCompetitorVisibility();
+      }
+      throw error;
+    }
   }
 
   async getAIReadiness(): Promise<AIReadinessScore> {
@@ -343,8 +462,19 @@ export class CairrotClient {
   }
 
   async getInsights(runId: string): Promise<Insight[]> {
-    const run = await this.getRun(runId);
-    return buildInsights(run);
+    if (process.env.CAIRROT_USE_MOCK === "true") {
+      return createMockInsights(runId);
+    }
+    try {
+      const run = await this.getRun(runId);
+      return buildInsights(run);
+    } catch (error) {
+      if (this.isFallbackAllowed()) {
+        console.warn(`[CairrotClient] getInsights failed. Using mock insights.`);
+        return createMockInsights(runId);
+      }
+      throw error;
+    }
   }
 
   getRecommendedActions(run: RunOverview): string[] {

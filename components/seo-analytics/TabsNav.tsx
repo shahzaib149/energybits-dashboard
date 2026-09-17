@@ -13,7 +13,13 @@ const tabs = [
 
 export type SEOTabId = (typeof tabs)[number]["id"];
 
-export function TabsNav({ activeTab }: { activeTab: SEOTabId }) {
+export function TabsNav({
+  activeTab,
+  onTabChange
+}: {
+  activeTab: SEOTabId;
+  onTabChange?: (tab: SEOTabId) => void;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -29,6 +35,12 @@ export function TabsNav({ activeTab }: { activeTab: SEOTabId }) {
           <Link
             key={tab.id}
             href={href}
+            onClick={(e) => {
+              if (onTabChange) {
+                e.preventDefault();
+                onTabChange(tab.id);
+              }
+            }}
             className={cn(
               "rounded-t-lg px-4 py-2.5 text-sm font-medium transition",
               active

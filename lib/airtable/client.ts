@@ -21,6 +21,7 @@ import type { DataBounds, DateRange } from "@/lib/date-range/types";
 import { combineFormulas, endDateInRangeFormula } from "@/lib/date-range/airtable-filter";
 import { mapBlogKeyword, mapAEOPrompt } from "@/lib/blog-pipeline/submit-types";
 import type { BlogKeyword, AEOPrompt } from "@/lib/blog-pipeline/submit-types";
+import { deduplicateSEORows } from "@/lib/seo-analytics/deduplicate";
 
 const MAX_RECORDS = 1000;
 const { seo: SEO } = AIRTABLE_BASES;
@@ -58,22 +59,25 @@ export class AirtableClient {
 
     if (allRows.length === 0) return [];
 
+    // Deduplicate Make.com re-sync duplicates
+    const dedupedRows = deduplicateSEORows(allRows);
+
     if (opts?.dateRange) {
-      return opts.limit ? allRows.slice(0, opts.limit) : allRows;
+      return opts.limit ? dedupedRows.slice(0, opts.limit) : dedupedRows;
     }
 
     // Find the most recent End Date present in the data (in-memory, no extra API call)
-    const latestEndDate = allRows.reduce<string>((max, r) => {
+    const latestEndDate = dedupedRows.reduce<string>((max, r) => {
       return r.endDate && r.endDate > max ? r.endDate : max;
     }, "");
 
     let filtered: SEOTrackingRow[];
     if (latestEndDate) {
       // Keep only rows from the latest period + rows with no End Date (manual entries)
-      filtered = allRows.filter((r) => r.endDate === latestEndDate || !r.endDate);
+      filtered = dedupedRows.filter((r) => r.endDate === latestEndDate || !r.endDate);
     } else {
       // No rows have an End Date at all — show everything
-      filtered = allRows;
+      filtered = dedupedRows;
     }
 
     return opts?.limit ? filtered.slice(0, opts.limit) : filtered;
@@ -248,11 +252,12 @@ export class AirtableClient {
    */
   async getAllKeywordsInRange(dateRange: DateRange): Promise<SEOTrackingRow[]> {
     const dateFilter = endDateInRangeFormula(dateRange);
-    return this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
+    const rawRows = await this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
       filterByFormula: dateFilter,
       sort: [{ field: "End Date", direction: "asc" }],
       cacheTags: [`airtable-seo-trend-${dateRange.from}-${dateRange.to}`]
     });
+    return deduplicateSEORows(rawRows);
   }
 
   /**
@@ -288,20 +293,20 @@ export class AirtableClient {
           filterByFormula: 'NOT({End Date} = "")',
           sort: [{ field: "End Date", direction: "asc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-seo-bounds"]
         }),
         this.client.fetchAllPages(SEO.tables.ga4PagePerformance, mapGA4PageRecord, {
           filterByFormula: 'NOT({End Date} = "")',
           sort: [{ field: "End Date", direction: "desc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-seo-bounds"]
         }),
         // Also check SEO Tracking for its latest End Date
         this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
           filterByFormula: 'NOT({End Date} = "")',
           sort: [{ field: "End Date", direction: "desc" }],
           maxRecords: 1,
-          noCache: true
+          cacheTags: ["airtable-seo-bounds"]
         })
       ]);
 

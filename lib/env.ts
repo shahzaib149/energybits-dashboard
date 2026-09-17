@@ -18,6 +18,13 @@ function readEnv(): CairrotEnv {
   const missing = CAIRROT_REQUIRED_VARS.filter((key) => !process.env[key]?.trim());
 
   if (missing.length > 0) {
+    if (process.env.CAIRROT_USE_MOCK === "true" || process.env.NODE_ENV === "development") {
+      return {
+        CAIRROT_API_KEY: process.env.CAIRROT_API_KEY?.trim() || "dev_mock_key",
+        CAIRROT_API_BASE_URL: (process.env.CAIRROT_API_BASE_URL?.trim() || DEFAULT_CAIRROT_BASE_URL).replace(/\/$/, ""),
+        CAIRROT_PROJECT_ID: process.env.CAIRROT_PROJECT_ID?.trim() || "6a06285ac1f55955b1909d75"
+      };
+    }
     throw new Error(
       `Missing required environment variables: ${missing.join(", ")}. ` +
         "Copy .env.example to .env.local and set your Cairrot credentials."
@@ -41,6 +48,9 @@ export function getCairrotEnv(): CairrotEnv {
 
 /** Non-throwing check for optional UI messaging. */
 export function isCairrotConfigured(): boolean {
+  if (process.env.CAIRROT_USE_MOCK === "true" || process.env.NODE_ENV === "development") {
+    return true;
+  }
   return CAIRROT_REQUIRED_VARS.every((key) => Boolean(process.env[key]?.trim()));
 }
 
