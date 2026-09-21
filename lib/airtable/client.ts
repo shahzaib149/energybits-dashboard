@@ -23,7 +23,7 @@ import { mapBlogKeyword, mapAEOPrompt } from "@/lib/blog-pipeline/submit-types";
 import type { BlogKeyword, AEOPrompt } from "@/lib/blog-pipeline/submit-types";
 import { deduplicateSEORows } from "@/lib/seo-analytics/deduplicate";
 
-const MAX_RECORDS = 1000;
+const MAX_RECORDS = 10000;
 const { seo: SEO } = AIRTABLE_BASES;
 
 export class AirtableClient {
@@ -255,7 +255,8 @@ export class AirtableClient {
     const rawRows = await this.client.fetchAllPages(SEO.tables.seoTracking, mapSEOTrackingRecord, {
       filterByFormula: dateFilter,
       sort: [{ field: "End Date", direction: "asc" }],
-      cacheTags: [`airtable-seo-trend-${dateRange.from}-${dateRange.to}`]
+      cacheTags: [`airtable-seo-trend-${dateRange.from}-${dateRange.to}`],
+      maxRecords: 10000
     });
     return deduplicateSEORows(rawRows);
   }
@@ -269,7 +270,8 @@ export class AirtableClient {
     return this.client.fetchAllPages(SEO.tables.ga4PagePerformance, mapGA4PageRecord, {
       filterByFormula: dateFilter,
       sort: [{ field: "End Date", direction: "asc" }],
-      cacheTags: [`airtable-seo-trend-pages-${dateRange.from}-${dateRange.to}`]
+      cacheTags: [`airtable-seo-trend-pages-${dateRange.from}-${dateRange.to}`],
+      maxRecords: 10000
     });
   }
 
@@ -282,7 +284,8 @@ export class AirtableClient {
     return this.client.fetchAllPages(SEO.tables.ga4TrafficSources, mapGA4SourceRecord, {
       filterByFormula: dateFilter,
       sort: [{ field: "End Date", direction: "asc" }],
-      cacheTags: [`airtable-seo-trend-sources-${dateRange.from}-${dateRange.to}`]
+      cacheTags: [`airtable-seo-trend-sources-${dateRange.from}-${dateRange.to}`],
+      maxRecords: 10000
     });
   }
 

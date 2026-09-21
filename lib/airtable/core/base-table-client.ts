@@ -5,7 +5,7 @@ import { resolveBaseId } from "@/lib/airtable/meta/resolve-base";
 import { getOrSetCache } from "@/lib/cache/memory-cache";
 
 const DEFAULT_REVALIDATE_SECONDS = 300;
-const DEFAULT_MAX_RECORDS = 2000;
+const DEFAULT_MAX_RECORDS = 10000;
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = [500, 1500, 3000]; // backoff between attempts
@@ -164,8 +164,9 @@ export class AirtableBaseTableClient {
           );
           results.push(...data.records.map(mapper));
           offset = data.offset;
-          if (results.length >= this.maxRecords) {
-            return results.slice(0, this.maxRecords);
+          const limit = opts.maxRecords ?? this.maxRecords;
+          if (limit && results.length >= limit) {
+            return results.slice(0, limit);
           }
         } while (offset);
 
